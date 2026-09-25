@@ -7,3 +7,12 @@
   --font-rounded: 'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif;
   --font-serif: Georgia, 'Times New Roman', serif;
 }
+
+/* Text inputs (like the search bar) get a theme-aware focus ring instead of the
+   browser default, and only when focused via keyboard. */
+input:focus-visible,
+textarea:focus-visible {
+  border-radius: 10px;
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
