@@ -1,180 +1,207 @@
-import { Image } from 'expo-image';
-import { SymbolView } from 'expo-symbols';
-import { Platform, Pressable, ScrollView, StyleSheet } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useMemo, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { ExternalLink } from '@/components/external-link';
+import { Avatar } from '@/components/avatar';
+import { ContactActions } from '@/components/contact-actions';
+import { IconButton } from '@/components/icon-button';
+import { ScreenHeader } from '@/components/screen-header';
+import { SearchBar } from '@/components/search-bar';
+import { SectionHeader } from '@/components/section-header';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Collapsible } from '@/components/ui/collapsible';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { BottomTabInset, Fonts, MaxContentWidth, Spacing, TopBarInset } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
-export default function TabTwoScreen() {
-  const safeAreaInsets = useSafeAreaInsets();
-  const insets = {
-    ...safeAreaInsets,
-    bottom: safeAreaInsets.bottom + BottomTabInset + Spacing.three,
-  };
+type Contact = {
+  id: string;
+  name: string;
+  isOnline?: boolean;
+};
+
+const contacts: Contact[] = [
+  { id: '1', name: 'Ada Lovelace', isOnline: true },
+  { id: '2', name: 'Alan Turing', isOnline: true },
+  { id: '3', name: 'Grace Hopper', isOnline: true },
+  { id: '4', name: 'Katherine Johnson', isOnline: false },
+  { id: '5', name: 'Margaret Hamilton', isOnline: false },
+  { id: '6', name: 'Radia Perlman', isOnline: true },
+];
+
+type ContactGroup = {
+  letter: string;
+  contacts: Contact[];
+};
+
+/** Groups contacts alphabetically, the way a phone book does. */
+function groupByLetter(list: Contact[]): ContactGroup[] {
+  return list.reduce<ContactGroup[]>((groups, contact) => {
+    const letter = contact.name.charAt(0).toUpperCase();
+    const last = groups.at(-1);
+
+    if (last?.letter === letter) {
+      last.contacts.push(contact);
+    } else {
+      groups.push({ letter, contacts: [contact] });
+    }
+    return groups;
+  }, []);
+}
+
+function ContactRow({
+  contact,
+  isLast,
+  onPress,
+}: {
+  contact: Contact;
+  isLast: boolean;
+  onPress: () => void;
+}) {
   const theme = useTheme();
 
-  const contentPlatformStyle = Platform.select({
-    android: {
-      paddingTop: insets.top,
-      paddingLeft: insets.left,
-      paddingRight: insets.right,
-      paddingBottom: insets.bottom,
-    },
-    web: {
-      paddingTop: Spacing.six,
-      paddingBottom: Spacing.four,
-    },
-  });
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [styles.contactRow, pressed && styles.pressed]}
+      accessibilityRole="button"
+      accessibilityLabel={`Call options for ${contact.name}`}>
+      <View
+        style={[
+          styles.contactRowInner,
+          !isLast && {
+            borderBottomWidth: StyleSheet.hairlineWidth,
+            borderBottomColor: theme.separator,
+          },
+        ]}>
+        <Avatar name={contact.name} isOnline={contact.isOnline} />
+
+        <ThemedText numberOfLines={1} style={styles.contactName}>
+          {contact.name}
+        </ThemedText>
+      </View>
+    </Pressable>
+  );
+}
+
+export default function ContactsScreen() {
+  const [query, setQuery] = useState('');
+  const [selected, setSelected] = useState<Contact | null>(null);
+
+  const groups = useMemo(() => {
+    const filtered = contacts.filter((contact) =>
+      contact.name.toLowerCase().includes(query.trim().toLowerCase())
+    );
+    return groupByLetter(filtered);
+  }, [query]);
 
   return (
-    <ScrollView
-      style={[styles.scrollView, { backgroundColor: theme.background }]}
-      contentInset={insets}
-      contentContainerStyle={[styles.contentContainer, contentPlatformStyle]}>
-      <ThemedView style={styles.container}>
-        <ThemedView style={styles.titleContainer}>
-          <ThemedText type="subtitle">Explore</ThemedText>
-          <ThemedText style={styles.centerText} themeColor="textSecondary">
-            This starter app includes example{'\n'}code to help you get started.
-          </ThemedText>
-
-          <ExternalLink href="https://docs.expo.dev" asChild>
-            <Pressable style={({ pressed }) => pressed && styles.pressed}>
-              <ThemedView type="backgroundElement" style={styles.linkButton}>
-                <ThemedText type="link">Expo documentation</ThemedText>
-                <SymbolView
-                  tintColor={theme.text}
-                  name={{ ios: 'arrow.up.right.square', android: 'link', web: 'link' }}
-                  size={12}
-                />
-              </ThemedView>
-            </Pressable>
-          </ExternalLink>
-        </ThemedView>
-
-        <ThemedView style={styles.sectionsWrapper}>
-          <Collapsible title="File-based routing">
-            <ThemedText type="small">
-              This app has two screens: <ThemedText type="code">src/app/index.tsx</ThemedText> and{' '}
-              <ThemedText type="code">src/app/explore.tsx</ThemedText>
-            </ThemedText>
-            <ThemedText type="small">
-              The layout file in <ThemedText type="code">src/app/_layout.tsx</ThemedText> sets up
-              the tab navigator.
-            </ThemedText>
-            <ExternalLink href="https://docs.expo.dev/router/introduction">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
-            </ExternalLink>
-          </Collapsible>
-
-          <Collapsible title="Android, iOS, and web support">
-            <ThemedView type="backgroundElement" style={styles.collapsibleContent}>
-              <ThemedText type="small">
-                You can open this project on Android, iOS, and the web. To open the web version,
-                press <ThemedText type="smallBold">w</ThemedText> in the terminal running this
-                project.
-              </ThemedText>
-              <Image
-                source={require('@/assets/images/tutorial-web.png')}
-                style={styles.imageTutorial}
+    <ThemedView style={styles.container}>
+      <SafeAreaView style={styles.safeArea}>
+        <ScrollView
+          style={styles.contentScroll}
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled">
+          <ScreenHeader
+            title="Contacts"
+            action={
+              <IconButton
+                name={{ ios: 'person.badge.plus', android: 'person_add', web: 'person_add' }}
+                onPress={() => {}}
+                accessibilityLabel="Add a contact"
               />
-            </ThemedView>
-          </Collapsible>
+            }
+          />
 
-          <Collapsible title="Images">
-            <ThemedText type="small">
-              For static images, you can use the <ThemedText type="code">@2x</ThemedText> and{' '}
-              <ThemedText type="code">@3x</ThemedText> suffixes to provide files for different
-              screen densities.
-            </ThemedText>
-            <Image source={require('@/assets/images/react-logo.png')} style={styles.imageReact} />
-            <ExternalLink href="https://reactnative.dev/docs/images">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
-            </ExternalLink>
-          </Collapsible>
+          <SearchBar value={query} onChangeText={setQuery} placeholder="Search contacts" />
 
-          <Collapsible title="Light and dark mode components">
-            <ThemedText type="small">
-              This template has light and dark mode support. The{' '}
-              <ThemedText type="code">useColorScheme()</ThemedText> hook lets you inspect what the
-              user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-            </ThemedText>
-            <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
-            </ExternalLink>
-          </Collapsible>
+          {groups.length === 0 ? (
+            <SectionHeader title="No results" />
+          ) : (
+            groups.map((group) => (
+              <View key={group.letter} style={styles.group}>
+                <ThemedText style={styles.groupLetter}>{group.letter}</ThemedText>
 
-          <Collapsible title="Animations">
-            <ThemedText type="small">
-              This template includes an example of an animated component. The{' '}
-              <ThemedText type="code">src/components/ui/collapsible.tsx</ThemedText> component uses
-              the powerful <ThemedText type="code">react-native-reanimated</ThemedText> library to
-              animate opening this hint.
-            </ThemedText>
-          </Collapsible>
-        </ThemedView>
-        {Platform.OS === 'web' && <WebBadge />}
-      </ThemedView>
-    </ScrollView>
+                <View style={styles.groupList}>
+                  {group.contacts.map((contact, index) => (
+                    <ContactRow
+                      key={contact.id}
+                      contact={contact}
+                      isLast={index === group.contacts.length - 1}
+                      onPress={() => setSelected(contact)}
+                    />
+                  ))}
+                </View>
+              </View>
+            ))
+          )}
+        </ScrollView>
+
+        <ContactActions
+          name={selected?.name ?? null}
+          onClose={() => setSelected(null)}
+          onCall={() => {}}
+          onVideo={() => {}}
+        />
+      </SafeAreaView>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  scrollView: {
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    flexDirection: 'row',
+  },
+  safeArea: {
+    flex: 1,
+    paddingHorizontal: Spacing.four,
+    paddingTop: TopBarInset,
+    maxWidth: MaxContentWidth,
+  },
+  contentScroll: {
     flex: 1,
   },
-  contentContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-  },
-  container: {
-    maxWidth: MaxContentWidth,
-    flexGrow: 1,
-  },
-  titleContainer: {
-    gap: Spacing.three,
+  content: {
     alignItems: 'center',
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.six,
+    paddingBottom: BottomTabInset + Spacing.four,
   },
-  centerText: {
-    textAlign: 'center',
+  group: {
+    alignSelf: 'stretch',
+    marginBottom: Spacing.four,
+  },
+  groupLetter: {
+    fontFamily: Fonts.sans,
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '700',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginBottom: Spacing.two,
+    paddingHorizontal: Spacing.two,
+  },
+  groupList: {
+    alignSelf: 'stretch',
+  },
+  contactRow: {
+    alignSelf: 'stretch',
+  },
+  contactRowInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.three,
+    paddingVertical: Spacing.two,
+    paddingRight: Spacing.two,
+  },
+  contactName: {
+    flex: 1,
+    fontFamily: Fonts.sans,
+    fontSize: 16,
+    lineHeight: 22,
+    fontWeight: '600',
   },
   pressed: {
     opacity: 0.7,
-  },
-  linkButton: {
-    flexDirection: 'row',
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.two,
-    borderRadius: Spacing.five,
-    justifyContent: 'center',
-    gap: Spacing.one,
-    alignItems: 'center',
-  },
-  sectionsWrapper: {
-    gap: Spacing.five,
-    paddingHorizontal: Spacing.four,
-    paddingTop: Spacing.three,
-  },
-  collapsibleContent: {
-    alignItems: 'center',
-  },
-  imageTutorial: {
-    width: '100%',
-    aspectRatio: 296 / 171,
-    borderRadius: Spacing.three,
-    marginTop: Spacing.two,
-  },
-  imageReact: {
-    width: 100,
-    height: 100,
-    alignSelf: 'center',
   },
 });

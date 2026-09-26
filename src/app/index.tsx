@@ -1,18 +1,26 @@
 import { SymbolView } from 'expo-symbols';
-import { useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, TextInput } from 'react-native';
+import { useMemo, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Avatar } from '@/components/avatar';
+import { IconButton } from '@/components/icon-button';
+import { ScreenHeader } from '@/components/screen-header';
+import { SearchBar } from '@/components/search-bar';
+import { SectionHeader } from '@/components/section-header';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { BottomTabInset, Fonts, MaxContentWidth, Spacing } from '@/constants/theme';
+import { BottomTabInset, Fonts, MaxContentWidth, Spacing, TopBarInset } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
-/** The web tab bar floats over the top of the page, so the screen needs extra
- * top padding there to keep the wordmark clear of it. */
-const topInset = Platform.select({ web: 120, default: Spacing.two }) ?? Spacing.two;
-
-const activeContacts = ['Ada', 'Grace', 'Alan', 'Katherine', 'Radia', 'Margaret'];
+const activeContacts = [
+  { name: 'Ada', isOnline: true },
+  { name: 'Grace', isOnline: true },
+  { name: 'Alan', isOnline: true },
+  { name: 'Katherine', isOnline: false },
+  { name: 'Radia', isOnline: true },
+  { name: 'Margaret', isOnline: false },
+];
 
 type CallStatus = 'ongoing' | 'upcoming' | 'missed' | 'completed';
 
@@ -42,40 +50,26 @@ const recentCalls: RecentCall[] = [
   { id: '6', name: 'Margaret Hamilton', status: 'missed', time: 'Monday, 8:02 AM' },
 ];
 
-function ActiveContact({ name }: { name: string }) {
-  const theme = useTheme();
+const filters = [
+  { key: 'all', label: 'All' },
+  { key: 'missed', label: 'Missed' },
+] as const;
 
-  return (
-    <ThemedView style={styles.contact}>
-      <ThemedView type="backgroundSelected" style={styles.avatar}>
-        <ThemedText style={styles.avatarInitial}>{name.charAt(0)}</ThemedText>
-        <ThemedView
-          style={[
-            styles.onlineDot,
-            { backgroundColor: theme.success, borderColor: theme.background },
-          ]}
-        />
-      </ThemedView>
-      <ThemedText numberOfLines={1} style={styles.contactName}>
-        {name}
-      </ThemedText>
-    </ThemedView>
-  );
+type Filter = (typeof filters)[number]['key'];
+
+function statusColor(status: CallStatus, success: string, danger: string, text: string) {
+  if (status === 'missed') return danger;
+  if (status === 'ongoing') return success;
+  return text;
 }
 
-function RecentCallRow({ call, isLast }: { call: RecentCall; isLast: boolean }) {
+function CallRow({ call, isLast }: { call: RecentCall; isLast: boolean }) {
   const theme = useTheme();
   const isOngoing = call.status === 'ongoing';
   const statusIcon = call.status === 'completed' ? null : statusIcons[call.status];
-  const statusColor =
-    call.status === 'missed'
-      ? theme.danger
-      : call.status === 'ongoing'
-        ? theme.success
-        : theme.text;
 
   return (
-    <ThemedView
+    <View
       style={[
         styles.callRow,
         !isLast && {
@@ -83,69 +77,50 @@ function RecentCallRow({ call, isLast }: { call: RecentCall; isLast: boolean }) 
           borderBottomColor: theme.separator,
         },
       ]}>
-      <ThemedView type="backgroundSelected" style={styles.callAvatar}>
-        <ThemedText style={styles.callAvatarInitial}>{call.name.charAt(0)}</ThemedText>
-      </ThemedView>
+      <Avatar name={call.name} />
 
-      <ThemedView style={styles.callInfo}>
-        <ThemedView style={styles.callNameRow}>
+      <View style={styles.callInfo}>
+        <View style={styles.callNameRow}>
           <ThemedText numberOfLines={1} style={styles.callName}>
             {call.name}
           </ThemedText>
-          {statusIcon != null && <SymbolView name={statusIcon} size={13} tintColor={statusColor} />}
-        </ThemedView>
+          {statusIcon != null && (
+            <SymbolView
+              name={statusIcon}
+              size={13}
+              tintColor={statusColor(call.status, theme.success, theme.danger, theme.text)}
+            />
+          )}
+        </View>
 
         <ThemedText numberOfLines={1} themeColor="textSecondary" style={styles.callMeta}>
           {call.duration != null ? `${call.time} · ${call.duration}` : call.time}
         </ThemedText>
-      </ThemedView>
+      </View>
 
-      <Pressable
+      <IconButton
+        variant={isOngoing ? 'danger' : 'subtle'}
+        name={
+          isOngoing
+            ? { ios: 'phone.down.fill', android: 'call_end', web: 'call_end' }
+            : { ios: 'phone.fill', android: 'call', web: 'call' }
+        }
         onPress={() => {}}
-        style={({ pressed }) => pressed && styles.pressed}
-        accessibilityRole="button"
-        accessibilityLabel={isOngoing ? `End call with ${call.name}` : `Call ${call.name}`}>
-        <ThemedView
-          type={isOngoing ? 'background' : 'backgroundElement'}
-          style={[styles.callButton, isOngoing && { backgroundColor: theme.danger }]}>
-          <SymbolView
-            name={
-              isOngoing
-                ? { ios: 'phone.down.fill', android: 'call_end', web: 'call_end' }
-                : { ios: 'phone.fill', android: 'call', web: 'call' }
-            }
-            size={18}
-            tintColor={isOngoing ? theme.background : theme.text}
-          />
-        </ThemedView>
-      </Pressable>
-    </ThemedView>
-  );
-}
-
-function SectionHeader({ title, action }: { title: string; action?: string }) {
-  return (
-    <ThemedView style={styles.sectionHeader}>
-      <ThemedText style={styles.sectionTitle}>{title}</ThemedText>
-      {action != null && (
-        <Pressable
-          onPress={() => {}}
-          hitSlop={8}
-          style={({ pressed }) => pressed && styles.pressed}
-          accessibilityRole="button"
-          accessibilityLabel={`Clear ${title.toLowerCase()}`}>
-          <ThemedText type="small" themeColor="textSecondary">
-            {action}
-          </ThemedText>
-        </Pressable>
-      )}
-    </ThemedView>
+        accessibilityLabel={isOngoing ? `End call with ${call.name}` : `Call ${call.name}`}
+      />
+    </View>
   );
 }
 
 export default function CallScreen() {
-  const theme = useTheme();
   const [query, setQuery] = useState('');
+  const [filter, setFilter] = useState<Filter>('all');
+
+  const visibleCalls = useMemo(
+    () =>
+      (filter === 'missed' ? recentCalls.filter((call) => call.status === 'missed') : recentCalls),
+    [filter]
+  );
 
   return (
     <ThemedView style={styles.container}>
@@ -155,61 +130,24 @@ export default function CallScreen() {
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled">
-          <ThemedView style={styles.header}>
-            <ThemedView style={styles.headerSlot} />
-            <ThemedText style={styles.appName}>
-              Meet
-              <ThemedText themeColor="textSecondary">Now</ThemedText>
-            </ThemedText>
-            <Pressable
-              onPress={() => {}}
-              style={({ pressed }) => [styles.newCallButton, pressed && styles.pressed]}
-              accessibilityRole="button"
-              accessibilityLabel="Start a new call">
-              <ThemedView style={[styles.newCallButtonFill, { backgroundColor: theme.text }]}>
-                <SymbolView
-                  name={{ ios: 'phone.fill', android: 'call', web: 'call' }}
-                  size={19}
-                  tintColor={theme.background}
-                />
-              </ThemedView>
-            </Pressable>
-          </ThemedView>
+          <ScreenHeader
+            title={
+              <>
+                Meet
+                <ThemedText themeColor="textSecondary">Now</ThemedText>
+              </>
+            }
+            action={
+              <IconButton
+                variant="filled"
+                name={{ ios: 'phone.fill', android: 'call', web: 'call' }}
+                onPress={() => {}}
+                accessibilityLabel="Start a new call"
+              />
+            }
+          />
 
-          <ThemedView type="backgroundElement" style={styles.searchBar}>
-            <SymbolView
-              name={{ ios: 'magnifyingglass', android: 'search', web: 'search' }}
-              size={17}
-              tintColor={theme.textSecondary}
-            />
-
-            <TextInput
-              value={query}
-              onChangeText={setQuery}
-              placeholder="Search"
-              placeholderTextColor={theme.textSecondary}
-              selectionColor={theme.text}
-              style={[styles.searchInput, { color: theme.text }]}
-              returnKeyType="search"
-              autoCapitalize="none"
-              autoCorrect={false}
-              accessibilityLabel="Search"
-            />
-
-            {query.length > 0 && (
-              <Pressable
-                onPress={() => setQuery('')}
-                hitSlop={8}
-                accessibilityRole="button"
-                accessibilityLabel="Clear search">
-                <SymbolView
-                  name={{ ios: 'xmark.circle.fill', android: 'cancel', web: 'cancel' }}
-                  size={17}
-                  tintColor={theme.textSecondary}
-                />
-              </Pressable>
-            )}
-          </ThemedView>
+          <SearchBar value={query} onChangeText={setQuery} placeholder="Search" />
 
           <SectionHeader title="Active" />
 
@@ -218,22 +156,50 @@ export default function CallScreen() {
             showsHorizontalScrollIndicator={false}
             style={styles.activeRowScroll}
             contentContainerStyle={styles.activeRow}>
-            {activeContacts.map((name) => (
-              <ActiveContact key={name} name={name} />
+            {activeContacts.map((contact) => (
+              <View key={contact.name} style={styles.contact}>
+                <Avatar name={contact.name} size={56} isOnline={contact.isOnline} />
+                <ThemedText numberOfLines={1} style={styles.contactName}>
+                  {contact.name}
+                </ThemedText>
+              </View>
             ))}
           </ScrollView>
 
-          <SectionHeader title="Recently" action="Clear" />
+          <SectionHeader title="Recently" action={filter === 'all' ? 'Clear' : undefined} />
 
-          <ThemedView style={styles.callList}>
-            {recentCalls.map((call, index) => (
-              <RecentCallRow
+          <View style={styles.filterRow}>
+            {filters.map((option) => {
+              const isSelected = filter === option.key;
+              return (
+                <Pressable
+                  key={option.key}
+                  onPress={() => setFilter(option.key)}
+                  style={({ pressed }) => pressed && styles.pressed}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: isSelected }}
+                  accessibilityLabel={`Show ${option.label.toLowerCase()} calls`}>
+                  <ThemedView
+                    type={isSelected ? 'backgroundSelected' : 'background'}
+                    style={styles.filterPill}>
+                    <ThemedText type="small" themeColor={isSelected ? 'text' : 'textSecondary'}>
+                      {option.label}
+                    </ThemedText>
+                  </ThemedView>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <View style={styles.callList}>
+            {visibleCalls.map((call, index) => (
+              <CallRow
                 key={call.id}
                 call={call}
-                isLast={index === recentCalls.length - 1}
+                isLast={index === visibleCalls.length - 1}
               />
             ))}
-          </ThemedView>
+          </View>
         </ScrollView>
       </SafeAreaView>
     </ThemedView>
@@ -249,7 +215,7 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     paddingHorizontal: Spacing.four,
-    paddingTop: topInset,
+    paddingTop: TopBarInset,
     maxWidth: MaxContentWidth,
   },
   contentScroll: {
@@ -258,67 +224,6 @@ const styles = StyleSheet.create({
   content: {
     alignItems: 'center',
     paddingBottom: BottomTabInset + Spacing.four,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'stretch',
-    marginBottom: Spacing.four,
-  },
-  headerSlot: {
-    width: 40,
-  },
-  appName: {
-    flex: 1,
-    fontFamily: Fonts.rounded,
-    fontSize: 32,
-    lineHeight: 40,
-    fontWeight: '700',
-    letterSpacing: -0.8,
-    textAlign: 'center',
-  },
-  newCallButton: {
-    width: 40,
-  },
-  newCallButtonFill: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'stretch',
-    gap: Spacing.two,
-    height: 44,
-    paddingHorizontal: Spacing.three,
-    borderRadius: Spacing.five,
-    marginBottom: Spacing.five,
-  },
-  searchInput: {
-    flex: 1,
-    fontFamily: Fonts.sans,
-    fontSize: 16,
-    lineHeight: 20,
-    fontWeight: '500',
-    padding: 0,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'stretch',
-    marginBottom: Spacing.three,
-  },
-  sectionTitle: {
-    flex: 1,
-    fontFamily: Fonts.sans,
-    fontSize: 20,
-    lineHeight: 26,
-    fontWeight: '600',
-    letterSpacing: -0.3,
-    textAlign: 'left',
   },
   activeRowScroll: {
     flexGrow: 0,
@@ -337,34 +242,23 @@ const styles = StyleSheet.create({
     gap: Spacing.one,
     width: 64,
   },
-  avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarInitial: {
-    fontFamily: Fonts.rounded,
-    fontSize: 24,
-    lineHeight: 30,
-    fontWeight: '700',
-  },
-  onlineDot: {
-    position: 'absolute',
-    right: -1,
-    bottom: -1,
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    borderWidth: 2,
-  },
   contactName: {
     fontFamily: Fonts.sans,
     fontSize: 12,
     lineHeight: 16,
     fontWeight: '500',
     textAlign: 'center',
+  },
+  filterRow: {
+    flexDirection: 'row',
+    alignSelf: 'stretch',
+    gap: Spacing.two,
+    marginBottom: Spacing.three,
+  },
+  filterPill: {
+    paddingVertical: Spacing.one,
+    paddingHorizontal: Spacing.three,
+    borderRadius: Spacing.three,
   },
   callList: {
     alignSelf: 'stretch',
@@ -375,19 +269,6 @@ const styles = StyleSheet.create({
     gap: Spacing.three,
     paddingVertical: Spacing.two,
     paddingRight: Spacing.two,
-  },
-  callAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  callAvatarInitial: {
-    fontFamily: Fonts.rounded,
-    fontSize: 18,
-    lineHeight: 24,
-    fontWeight: '700',
   },
   callInfo: {
     flex: 1,
@@ -410,13 +291,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '500',
-  },
-  callButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   pressed: {
     opacity: 0.7,
