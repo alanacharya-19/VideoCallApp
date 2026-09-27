@@ -16,6 +16,7 @@ export type IconButtonProps = {
   variant?: 'filled' | 'subtle' | 'danger';
   size?: number;
   iconSize?: number;
+  disabled?: boolean;
 };
 
 export function IconButton({
@@ -25,6 +26,7 @@ export function IconButton({
   variant = 'subtle',
   size = 40,
   iconSize = 18,
+  disabled = false,
 }: IconButtonProps) {
   const theme = useTheme();
   const fill =
@@ -33,10 +35,12 @@ export function IconButton({
 
   return (
     <Pressable
-      onPress={onPress}
-      style={({ pressed }) => pressed && styles.pressed}
+      onPress={disabled ? undefined : onPress}
+      disabled={disabled}
+      style={({ pressed }) => [pressed && !disabled && styles.pressed, disabled && styles.disabled]}
       accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel}>
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={{ disabled }}>
       <ThemedView
         style={[
           styles.button,
@@ -55,5 +59,8 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.7,
+  },
+  disabled: {
+    opacity: 0.4,
   },
 });

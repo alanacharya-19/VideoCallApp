@@ -11,6 +11,7 @@ import { SectionHeader } from '@/components/section-header';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { BottomTabInset, Fonts, MaxContentWidth, Spacing, TopBarInset } from '@/constants/theme';
+import { env } from '@/config/env';
 import { useTheme } from '@/hooks/use-theme';
 
 const activeContacts = [
@@ -142,6 +143,7 @@ export default function CallScreen() {
                 variant="filled"
                 name={{ ios: 'phone.fill', android: 'call', web: 'call' }}
                 onPress={() => {}}
+                disabled={!env.hasCallCredentials}
                 accessibilityLabel="Start a new call"
               />
             }
