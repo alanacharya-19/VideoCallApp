@@ -27,6 +27,9 @@ export default function AppTabs() {
           <TabTrigger name="explore" href="/explore" asChild>
             <TabButton icon={{ ios: 'person.2.fill', web: 'groups' }}>Contacts</TabButton>
           </TabTrigger>
+          <TabTrigger name="settings" href={'/settings' as any} asChild>
+            <TabButton icon={{ ios: 'gearshape.fill', web: 'settings' }}>Settings</TabButton>
+          </TabTrigger>
         </CustomTabList>
       </TabList>
     </Tabs>

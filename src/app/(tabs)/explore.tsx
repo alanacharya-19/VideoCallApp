@@ -1,8 +1,9 @@
 import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useMemo, useState, type ReactNode } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
 
 import { Avatar } from '@/components/avatar';
 import { ContactActions } from '@/components/contact-actions';
@@ -42,8 +43,6 @@ function PersonRow({ user, isLast, onSelect, trailing }: RowProps) {
   const theme = useTheme();
 
   return (
-    // The row is not a button itself: it holds one, and nested buttons are
-    // invalid markup.
     <View
       style={[
         styles.personRowInner,
@@ -148,6 +147,7 @@ export default function ContactsScreen() {
     incomingRequests,
     loading,
     sendFriendRequest,
+    removeFriend,
     isFriend,
     hasPendingRequest,
     requestSender,
@@ -193,6 +193,25 @@ export default function ContactsScreen() {
       : list === 'requests'
         ? visibleRequests.length === 0
         : visibleDiscover.length === 0);
+
+  function handleRemoveFriend(person: User) {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    Alert.alert(
+      'Remove friend',
+      `Remove ${person.name} from your friends?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: () => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            void removeFriend(person.id);
+          },
+        },
+      ]
+    );
+  }
 
   return (
     <ThemedView style={styles.container}>
@@ -276,13 +295,23 @@ export default function ContactsScreen() {
                   isLast={index === visibleFriends.length - 1}
                   onSelect={() => setSelected(person)}
                   trailing={
-                    <IconButton
-                      size={34}
-                      iconSize={15}
-                      name={{ ios: 'phone.fill', android: 'call', web: 'call' }}
-                      onPress={() => router.push(`/call/${person.id}`)}
-                      accessibilityLabel={`Call ${person.name}`}
-                    />
+                    <View style={styles.friendActions}>
+                      <IconButton
+                        size={34}
+                        iconSize={15}
+                        name={{ ios: 'phone.fill', android: 'call', web: 'call' }}
+                        onPress={() => router.push(`/call/${person.id}`)}
+                        accessibilityLabel={`Call ${person.name}`}
+                      />
+                      <IconButton
+                        size={34}
+                        iconSize={15}
+                        variant="subtle"
+                        name={{ ios: 'person.badge.minus', android: 'person_remove', web: 'person_remove' }}
+                        onPress={() => handleRemoveFriend(person)}
+                        accessibilityLabel={`Remove ${person.name} from friends`}
+                      />
+                    </View>
                   }
                 />
               ))}
@@ -464,6 +493,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '500',
+  },
+  friendActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.one,
   },
   requestRow: {
     justifyContent: 'space-between',

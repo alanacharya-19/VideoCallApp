@@ -1,16 +1,20 @@
 import { SymbolView } from 'expo-symbols';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
 
 import { Avatar } from '@/components/avatar';
+import { CallQualityIndicator, getQualityFromStats } from '@/components/call-quality';
+import { LocalVideoView, RemoteVideoView } from '@/components/video-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Fonts, MaxContentWidth, Spacing } from '@/constants/theme';
 import { env } from '@/config/env';
 import { useTheme } from '@/hooks/use-theme';
 import { useSocial } from '@/providers/social-provider';
+import { createCallService, type CallService } from '@/services/call-service';
 
 type CallState = 'connecting' | 'connected' | 'ended';
 
@@ -28,11 +32,6 @@ const controls = [
 
 type ControlKey = (typeof controls)[number]['key'];
 
-/**
- * Active call surface. The provider SDK is not wired up yet, so this runs the
- * real call lifecycle (connect → connected → end) and owns the screen state.
- * `src/services/call-service.ts` is where the SDK gets plugged in.
- */
 export default function CallScreen() {
   const router = useRouter();
   const theme = useTheme();
@@ -51,22 +50,73 @@ export default function CallScreen() {
     video: false,
     speaker: false,
   });
+  const [remoteUid, setRemoteUid] = useState<number | null>(null);
+  const [quality, setQuality] = useState<'excellent' | 'good' | 'fair' | 'poor' | 'unknown'>('unknown');
+  const [showLocalVideo, setShowLocalVideo] = useState(true);
+
   const startedAt = useRef(new Date().toISOString());
   const recorded = useRef(false);
+  const callService = useRef<CallService | null>(null);
+  const channelName = useMemo(() => `call-${params.id}-${Date.now()}`, [params.id]);
+  const uid = useMemo(() => Math.floor(Math.random() * 100000), []);
 
+  // Initialize Agora and join channel
   useEffect(() => {
-    const timer = setTimeout(() => setState('connected'), 900);
-    return () => clearTimeout(timer);
-  }, []);
+    if (!env.hasCallCredentials) {
+      // Fallback: simulate connection for demo
+      const timer = setTimeout(() => setState('connected'), 900);
+      return () => clearTimeout(timer);
+    }
 
+    const service = createCallService();
+    callService.current = service;
+
+    service.on('connectionStateChanged', (connectionState) => {
+      if (connectionState === 3) {
+        // ConnectionStateConnected
+        setState('connected');
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+    });
+
+    service.on('userJoined', (joinedUid) => {
+      setRemoteUid(joinedUid);
+    });
+
+    service.on('userOffline', () => {
+      setRemoteUid(null);
+    });
+
+    service.on('networkQuality', (_tx, rx) => {
+      const q = rx <= 1 ? 'excellent' : rx <= 2 ? 'good' : rx <= 3 ? 'fair' : 'poor';
+      setQuality(q);
+    });
+
+    service.on('callEnded', () => {
+      // Call ended
+    });
+
+    service.on('error', (_err, msg) => {
+      console.warn('Agora error:', _err, msg);
+    });
+
+    void service.join(channelName, env.AGORA_TOKEN, uid);
+
+    return () => {
+      void service.leave();
+      service.destroy();
+      callService.current = null;
+    };
+  }, [channelName, uid]);
+
+  // Duration timer
   useEffect(() => {
     if (state !== 'connected') return;
     const timer = setInterval(() => setSeconds((value) => value + 1), 1000);
     return () => clearInterval(timer);
   }, [state]);
 
-  // Leaving the screen by any route (back gesture, minimise, close) must still
-  // end the call and write it to history, exactly once.
+  // Record call on unmount
   useEffect(() => {
     return () => {
       if (recorded.current) return;
@@ -85,10 +135,30 @@ export default function CallScreen() {
     };
   }, [peer, recordCall, seconds, params.mode]);
 
+  const toggleControl = useCallback(
+    (key: ControlKey) => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      setMuted((current) => {
+        const next = { ...current, [key]: !current[key] };
+        if (callService.current) {
+          if (key === 'mute') callService.current.muteAudio(next.mute);
+          if (key === 'video') callService.current.muteVideo(next.video);
+          if (key === 'speaker') callService.current.setSpeakerEnabled(next.speaker);
+        }
+        return next;
+      });
+    },
+    []
+  );
+
   function hangUp() {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     setState('ended');
     router.back();
   }
+
+  const isVideo = params.mode === 'video';
+  const hasRemoteVideo = remoteUid != null && isVideo && !muted.video;
 
   return (
     <ThemedView style={styles.container}>
@@ -105,20 +175,35 @@ export default function CallScreen() {
               tintColor={theme.text}
             />
           </Pressable>
+
+          {state === 'connected' && (
+            <View style={styles.topBarRight}>
+              <CallQualityIndicator quality={quality} />
+            </View>
+          )}
         </View>
 
         <View style={styles.stage}>
-          <View style={styles.peer}>
-            <Avatar name={peer?.name ?? '?'} size={112} colorIndex={peer?.colorIndex} />
-
-            <ThemedText style={styles.peerName}>{peer?.name ?? 'Unknown'}</ThemedText>
-
-            <ThemedText themeColor="textSecondary" style={styles.status}>
-              {state === 'connecting' && 'Connecting…'}
-              {state === 'connected' && formatDuration(seconds)}
-              {state === 'ended' && 'Call ended'}
-            </ThemedText>
-          </View>
+          {hasRemoteVideo && remoteUid != null ? (
+            <View style={styles.remoteVideo}>
+              <RemoteVideoView uid={remoteUid} channelId={channelName} />
+              {showLocalVideo && (
+                <View style={styles.localVideo}>
+                  <LocalVideoView uid={uid} channelId={channelName} />
+                </View>
+              )}
+            </View>
+          ) : (
+            <View style={styles.peer}>
+              <Avatar name={peer?.name ?? '?'} size={112} colorIndex={peer?.colorIndex} />
+              <ThemedText style={styles.peerName}>{peer?.name ?? 'Unknown'}</ThemedText>
+              <ThemedText themeColor="textSecondary" style={styles.status}>
+                {state === 'connecting' && 'Connecting…'}
+                {state === 'connected' && formatDuration(seconds)}
+                {state === 'ended' && 'Call ended'}
+              </ThemedText>
+            </View>
+          )}
 
           {state === 'connecting' && (
             <View style={styles.badge}>
@@ -137,9 +222,7 @@ export default function CallScreen() {
             return (
               <View key={control.key} style={styles.control}>
                 <Pressable
-                  onPress={() =>
-                    setMuted((current) => ({ ...current, [control.key]: !current[control.key] }))
-                  }
+                  onPress={() => toggleControl(control.key)}
                   accessibilityRole="button"
                   accessibilityState={{ selected: isOn }}
                   accessibilityLabel={`${isOn ? 'Turn on' : 'Turn off'} ${control.label.toLowerCase()}`}
@@ -197,7 +280,13 @@ const styles = StyleSheet.create({
   },
   topBar: {
     flexDirection: 'row',
-    justifyContent: 'flex-start',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  topBarRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
   },
   circleButton: {
     width: 40,
@@ -233,6 +322,23 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.one,
     paddingHorizontal: Spacing.three,
     borderRadius: Spacing.three,
+  },
+  remoteVideo: {
+    flex: 1,
+    alignSelf: 'stretch',
+    borderRadius: Spacing.three,
+    overflow: 'hidden',
+  },
+  localVideo: {
+    position: 'absolute',
+    top: Spacing.three,
+    right: Spacing.three,
+    width: 100,
+    height: 140,
+    borderRadius: Spacing.two,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: '#FFF',
   },
   controls: {
     flexDirection: 'row',

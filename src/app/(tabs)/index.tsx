@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
 
 import { Avatar } from '@/components/avatar';
 import { IconButton } from '@/components/icon-button';
@@ -192,6 +193,26 @@ export default function CallScreen() {
     [callHistory, filter]
   );
 
+  function handleCall(person: User) {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    router.push(`/call/${person.id}`);
+  }
+
+  function handleVideoCall(person: User) {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    router.push(`/call/${person.id}?mode=video`);
+  }
+
+  function handleAddFriend(person: User) {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    void sendFriendRequest(person.id);
+  }
+
+  function handleClearHistory() {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    void clearCallHistory();
+  }
+
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
@@ -211,7 +232,7 @@ export default function CallScreen() {
               <IconButton
                 variant="filled"
                 name={{ ios: 'phone.fill', android: 'call', web: 'call' }}
-                onPress={() => router.push(`/call/${friends[0]?.id ?? directory[0]?.id ?? ''}`)}
+                onPress={() => handleCall(friends[0] ?? directory[0])}
                 disabled={!env.hasCallCredentials || friends.length + directory.length === 0}
                 accessibilityLabel="Start a new call"
               />
@@ -234,9 +255,9 @@ export default function CallScreen() {
                       key={person.id}
                       person={person}
                       isLast={index === results.length - 1}
-                      onCall={() => router.push(`/call/${person.id}`)}
+                      onCall={() => handleCall(person)}
                       onAdd={
-                        isFriend(person.id) ? undefined : () => void sendFriendRequest(person.id)
+                        isFriend(person.id) ? undefined : () => handleAddFriend(person)
                       }
                     />
                   ))}
@@ -257,7 +278,7 @@ export default function CallScreen() {
                   {onlineFriends.map((friend) => (
                     <Pressable
                       key={friend.id}
-                      onPress={() => router.push(`/call/${friend.id}`)}
+                      onPress={() => handleCall(friend)}
                       accessibilityRole="button"
                       accessibilityLabel={`Call ${friend.name}`}
                       style={({ pressed }) => [styles.contact, pressed && styles.pressed]}>
@@ -282,7 +303,7 @@ export default function CallScreen() {
               <SectionHeader
                 title="Recently"
                 action={callHistory.length > 0 ? 'Clear' : undefined}
-                onActionPress={() => void clearCallHistory()}
+                onActionPress={handleClearHistory}
               />
 
               {callHistory.length > 0 && (
@@ -319,7 +340,12 @@ export default function CallScreen() {
                       key={record.id}
                       record={record}
                       isLast={index === visibleHistory.length - 1}
-                      onCall={() => router.push(`/call/${record.peerId}`)}
+                      onCall={() => {
+                        const person = [...friends, ...directory].find(
+                          (p) => p.id === record.peerId
+                        );
+                        if (person) handleCall(person);
+                      }}
                     />
                   ))}
                 </View>
@@ -334,7 +360,7 @@ export default function CallScreen() {
                   </ThemedText>
                   {callHistory.length > 0 && (
                     <Pressable
-                      onPress={() => void clearCallHistory()}
+                      onPress={handleClearHistory}
                       accessibilityRole="button"
                       accessibilityLabel="Clear call history"
                       style={({ pressed }) => [styles.emptyAction, pressed && styles.pressed]}>
