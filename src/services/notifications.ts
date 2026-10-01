@@ -33,6 +33,8 @@ export async function setupNotifications(): Promise<boolean> {
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldShowAlert: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
       shouldPlaySound: true,
       shouldSetBadge: true,
       priority: Notifications.AndroidNotificationPriority.MAX,

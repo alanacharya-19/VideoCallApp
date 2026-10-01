@@ -9,8 +9,6 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Fonts, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAuth } from '@/providers/auth-provider';
-import { DEMO_PASSWORD } from '@/services';
-
 export default function SignInScreen() {
   const { signIn } = useAuth();
   const [email, setEmail] = useState('');
@@ -27,12 +25,6 @@ export default function SignInScreen() {
       setError(cause instanceof Error ? cause.message : 'Something went wrong');
       setLoading(false);
     }
-  }
-
-  function useDemoAccount() {
-    setEmail('ada@meetnow.app');
-    setPassword(DEMO_PASSWORD);
-    setError(null);
   }
 
   return (
@@ -86,16 +78,6 @@ export default function SignInScreen() {
             </View>
 
             <View style={styles.footer}>
-              <Pressable
-                onPress={useDemoAccount}
-                accessibilityRole="button"
-                accessibilityLabel="Fill demo account details"
-                style={({ pressed }) => pressed && styles.pressed}>
-                <ThemedText type="small" themeColor="textSecondary">
-                  Use a demo account
-                </ThemedText>
-              </Pressable>
-
               <View style={styles.footerRow}>
                 <ThemedText type="small" themeColor="textSecondary">
                   New here?

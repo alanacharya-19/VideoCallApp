@@ -231,10 +231,9 @@ export default function CallScreen() {
             action={
               <IconButton
                 variant="filled"
-                name={{ ios: 'phone.fill', android: 'call', web: 'call' }}
-                onPress={() => handleCall(friends[0] ?? directory[0])}
-                disabled={!env.hasCallCredentials || friends.length + directory.length === 0}
-                accessibilityLabel="Start a new call"
+                name={{ ios: 'person.crop.circle', android: 'account_circle', web: 'account_circle' }}
+                onPress={() => router.push('/profile')}
+                accessibilityLabel="Your profile"
               />
             }
           />

@@ -30,14 +30,7 @@ const AVATAR_COLORS = 6;
 
 type StoredUser = User & { password: string };
 
-const seedUsers: StoredUser[] = [
-  { id: 'u_ada', name: 'Ada Lovelace', email: 'ada@meetnow.app', password: 'password123', isOnline: true, colorIndex: 0 },
-  { id: 'u_grace', name: 'Grace Hopper', email: 'grace@meetnow.app', password: 'password123', isOnline: true, colorIndex: 1 },
-  { id: 'u_alan', name: 'Alan Turing', email: 'alan@meetnow.app', password: 'password123', isOnline: true, colorIndex: 2 },
-  { id: 'u_katherine', name: 'Katherine Johnson', email: 'katherine@meetnow.app', password: 'password123', isOnline: false, colorIndex: 3 },
-  { id: 'u_radia', name: 'Radia Perlman', email: 'radia@meetnow.app', password: 'password123', isOnline: true, colorIndex: 4 },
-  { id: 'u_margaret', name: 'Margaret Hamilton', email: 'margaret@meetnow.app', password: 'password123', isOnline: false, colorIndex: 5 },
-];
+const seedUsers: StoredUser[] = [];
 
 function wait(ms = LATENCY_MS) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -157,23 +150,8 @@ export const localBackend: Backend = {
     };
     await writeUsers([...users, user]);
 
-    // Demo affordance of this local backend: give a brand new account one
-    // incoming request so the accept/decline flow is reachable. A real backend
-    // would not do this.
-    const requests = await readRequests();
-    const sender = users.find((candidate) => candidate.id !== user.id);
-    if (sender != null) {
-      await writeRequests([
-        ...requests,
-        {
-          id: makeId('r'),
-          fromUserId: sender.id,
-          toUserId: user.id,
-          status: 'pending',
-          createdAt: new Date().toISOString(),
-        },
-      ]);
-    }
+    // No seed data — new accounts start with an empty directory.
+    // People are discovered through search as they sign up.
 
     const session: Session = { user: toPublic(user), token: makeToken(user.id) };
     await AsyncStorage.setItem(KEYS.session, JSON.stringify(session));
@@ -305,5 +283,4 @@ export const localBackend: Backend = {
   },
 };
 
-/** Any account in the seeded directory can be tried with this password. */
-export const DEMO_PASSWORD = 'password123';
+

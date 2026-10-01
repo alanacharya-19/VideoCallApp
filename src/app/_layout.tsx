@@ -42,10 +42,7 @@ export default function RootLayout() {
                   name="incoming-call"
                   options={{ animation: 'slide_from_bottom', presentation: 'fullScreenModal' }}
                 />
-                <Stack.Screen
-                  name="profile"
-                  options={{ animation: 'slide_from_right', presentation: 'modal' }}
-                />
+
               </Stack>
             </Gate>
           </SocialProvider>

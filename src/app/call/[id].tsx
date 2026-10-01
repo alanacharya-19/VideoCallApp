@@ -6,9 +6,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 
 import { Avatar } from '@/components/avatar';
-import { CallQualityIndicator, getQualityFromStats } from '@/components/call-quality';
-import { LocalVideoView, RemoteVideoView } from '@/components/video-view';
+import { CallQualityIndicator } from '@/components/call-quality';
 import { ThemedText } from '@/components/themed-text';
+// VideoView imports removed — using simulated fallback for Expo Go compatibility
 import { ThemedView } from '@/components/themed-view';
 import { Fonts, MaxContentWidth, Spacing } from '@/constants/theme';
 import { env } from '@/config/env';
@@ -50,9 +50,8 @@ export default function CallScreen() {
     video: false,
     speaker: false,
   });
-  const [remoteUid, setRemoteUid] = useState<number | null>(null);
   const [quality, setQuality] = useState<'excellent' | 'good' | 'fair' | 'poor' | 'unknown'>('unknown');
-  const [showLocalVideo, setShowLocalVideo] = useState(true);
+  const [isRealCall, setIsRealCall] = useState(false);
 
   const startedAt = useRef(new Date().toISOString());
   const recorded = useRef(false);
@@ -60,31 +59,17 @@ export default function CallScreen() {
   const channelName = useMemo(() => `call-${params.id}-${Date.now()}`, [params.id]);
   const uid = useMemo(() => Math.floor(Math.random() * 100000), []);
 
-  // Initialize Agora and join channel
+  // Initialize call service and join channel
   useEffect(() => {
-    if (!env.hasCallCredentials) {
-      // Fallback: simulate connection for demo
-      const timer = setTimeout(() => setState('connected'), 900);
-      return () => clearTimeout(timer);
-    }
-
     const service = createCallService();
     callService.current = service;
+    setIsRealCall(service.isReal());
 
     service.on('connectionStateChanged', (connectionState) => {
       if (connectionState === 3) {
-        // ConnectionStateConnected
         setState('connected');
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
-    });
-
-    service.on('userJoined', (joinedUid) => {
-      setRemoteUid(joinedUid);
-    });
-
-    service.on('userOffline', () => {
-      setRemoteUid(null);
     });
 
     service.on('networkQuality', (_tx, rx) => {
@@ -97,7 +82,7 @@ export default function CallScreen() {
     });
 
     service.on('error', (_err, msg) => {
-      console.warn('Agora error:', _err, msg);
+      console.warn('Call error:', _err, msg);
     });
 
     void service.join(channelName, env.AGORA_TOKEN, uid);
@@ -157,9 +142,6 @@ export default function CallScreen() {
     router.back();
   }
 
-  const isVideo = params.mode === 'video';
-  const hasRemoteVideo = remoteUid != null && isVideo && !muted.video;
-
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
@@ -184,33 +166,24 @@ export default function CallScreen() {
         </View>
 
         <View style={styles.stage}>
-          {hasRemoteVideo && remoteUid != null ? (
-            <View style={styles.remoteVideo}>
-              <RemoteVideoView uid={remoteUid} channelId={channelName} />
-              {showLocalVideo && (
-                <View style={styles.localVideo}>
-                  <LocalVideoView uid={uid} channelId={channelName} />
-                </View>
-              )}
-            </View>
-          ) : (
-            <View style={styles.peer}>
-              <Avatar name={peer?.name ?? '?'} size={112} colorIndex={peer?.colorIndex} />
-              <ThemedText style={styles.peerName}>{peer?.name ?? 'Unknown'}</ThemedText>
-              <ThemedText themeColor="textSecondary" style={styles.status}>
-                {state === 'connecting' && 'Connecting…'}
-                {state === 'connected' && formatDuration(seconds)}
-                {state === 'ended' && 'Call ended'}
-              </ThemedText>
-            </View>
-          )}
+          <View style={styles.peer}>
+            <Avatar name={peer?.name ?? '?'} size={112} colorIndex={peer?.colorIndex} />
+            <ThemedText style={styles.peerName}>{peer?.name ?? 'Unknown'}</ThemedText>
+            <ThemedText themeColor="textSecondary" style={styles.status}>
+              {state === 'connecting' && 'Connecting…'}
+              {state === 'connected' && formatDuration(seconds)}
+              {state === 'ended' && 'Call ended'}
+            </ThemedText>
+          </View>
 
           {state === 'connecting' && (
             <View style={styles.badge}>
               <ThemedText type="small" themeColor="textSecondary">
-                {env.hasCallCredentials
+                {isRealCall
                   ? 'Securing a connection…'
-                  : 'Add credentials to .env to connect'}
+                  : env.hasCallCredentials
+                    ? 'Expo Go: simulated call. Use a dev build for real video.'
+                    : 'Add credentials to .env to connect'}
               </ThemedText>
             </View>
           )}
@@ -322,23 +295,6 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.one,
     paddingHorizontal: Spacing.three,
     borderRadius: Spacing.three,
-  },
-  remoteVideo: {
-    flex: 1,
-    alignSelf: 'stretch',
-    borderRadius: Spacing.three,
-    overflow: 'hidden',
-  },
-  localVideo: {
-    position: 'absolute',
-    top: Spacing.three,
-    right: Spacing.three,
-    width: 100,
-    height: 140,
-    borderRadius: Spacing.two,
-    overflow: 'hidden',
-    borderWidth: 2,
-    borderColor: '#FFF',
   },
   controls: {
     flexDirection: 'row',

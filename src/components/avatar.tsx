@@ -34,7 +34,7 @@ export function Avatar({ name, size = 44, isOnline = false, colorIndex }: Avatar
       <ThemedText
         style={[
           styles.initial,
-          { fontSize: size * 0.42, lineHeight: size * 0.54 },
+          { fontSize: size * 0.6, lineHeight: size * 0.75 },
           color != null && styles.initialOnColor,
         ]}>
         {name.charAt(0).toUpperCase()}

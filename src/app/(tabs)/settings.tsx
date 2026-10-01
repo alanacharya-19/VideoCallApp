@@ -126,7 +126,7 @@ export default function SettingsScreen() {
               icon={{ ios: 'person.circle', android: 'account_circle', web: 'account_circle' }}
               label="Edit profile"
               showChevron
-              onPress={() => router.push('/profile')}
+              onPress={() => router.push('/profile' as any)}
             />
             <SettingRow
               icon={{ ios: 'envelope', android: 'email', web: 'email' }}

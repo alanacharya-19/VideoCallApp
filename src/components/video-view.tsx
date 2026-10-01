@@ -1,8 +1,47 @@
-import { requireNativeComponent, View, StyleSheet, type ViewProps } from 'react-native';
-import { RenderModeType } from 'react-native-agora';
+import { View, StyleSheet, type ViewProps } from 'react-native';
 
-const AgoraSurfaceView = requireNativeComponent<any>('AgoraSurfaceView');
-const AgoraVideoView = requireNativeComponent<any>('AgoraVideoView');
+/**
+ * Video views for Agora. When the native module is available (development build),
+ * these render real video. In Expo Go or when the module isn't linked, they
+ * render as empty views so the app still works with the simulated call flow.
+ */
+
+function isAgoraAvailable(): boolean {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    require('react-native-agora');
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+const AgoraAvailable = isAgoraAvailable();
+
+let AgoraSurfaceView: any = null;
+let AgoraVideoView: any = null;
+
+if (AgoraAvailable) {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const Agora = require('react-native-agora');
+    AgoraSurfaceView = requireNativeComponentSafe('AgoraSurfaceView');
+    AgoraVideoView = requireNativeComponentSafe('AgoraVideoView');
+  } catch {
+    AgoraSurfaceView = null;
+    AgoraVideoView = null;
+  }
+}
+
+function requireNativeComponentSafe(name: string) {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { requireNativeComponent } = require('react-native');
+    return requireNativeComponent(name);
+  } catch {
+    return null;
+  }
+}
 
 type VideoViewProps = ViewProps & {
   uid: number;
@@ -12,58 +51,23 @@ type VideoViewProps = ViewProps & {
   zOrderMediaOverlay?: boolean;
 };
 
-/**
- * Renders a remote Agora video stream.
- * For local preview, use `LocalVideoView` instead.
- */
-export function RemoteVideoView({
-  uid,
-  channelId,
-  renderMode = RenderModeType.RenderModeHidden,
-  mirrorMode,
-  zOrderMediaOverlay,
-  style,
-  ...rest
-}: VideoViewProps) {
-  return (
-    <AgoraVideoView
-      style={[styles.video, style]}
-      uid={uid}
-      channelId={channelId}
-      renderMode={renderMode}
-      mirrorMode={mirrorMode}
-      zOrderMediaOverlay={zOrderMediaOverlay}
-      {...rest}
-    />
-  );
+export function RemoteVideoView({ style, ...rest }: VideoViewProps) {
+  if (AgoraVideoView == null) {
+    return <View style={[styles.video, style]} {...rest} />;
+  }
+  return <AgoraVideoView style={[styles.video, style]} {...rest} />;
 }
 
-/**
- * Renders the local camera preview.
- */
-export function LocalVideoView({
-  uid,
-  channelId,
-  renderMode = RenderModeType.RenderModeHidden,
-  mirrorMode = 1,
-  style,
-  ...rest
-}: VideoViewProps) {
-  return (
-    <AgoraSurfaceView
-      style={[styles.video, style]}
-      uid={uid}
-      channelId={channelId}
-      renderMode={renderMode}
-      mirrorMode={mirrorMode}
-      {...rest}
-    />
-  );
+export function LocalVideoView({ style, ...rest }: VideoViewProps) {
+  if (AgoraSurfaceView == null) {
+    return <View style={[styles.video, style]} {...rest} />;
+  }
+  return <AgoraSurfaceView style={[styles.video, style]} {...rest} />;
 }
 
 const styles = StyleSheet.create({
   video: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: '#1a1a1a',
   },
 });

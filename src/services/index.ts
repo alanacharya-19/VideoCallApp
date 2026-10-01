@@ -10,5 +10,4 @@ import type { Backend } from '@/services/types';
  */
 export const backend: Backend = localBackend;
 
-export { DEMO_PASSWORD } from '@/services/local-backend';
 export * from '@/services/types';
