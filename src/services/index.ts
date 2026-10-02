@@ -1,13 +1,11 @@
-import { localBackend } from '@/services/local-backend';
+import { supabaseBackend } from '@/services/supabase-backend';
 import type { Backend } from '@/services/types';
 
 /**
  * The single place the app decides where data comes from.
  *
- * Today that is a local, on-device backend so the whole product works offline.
- * When the real API is ready, swap this line for the remote implementation —
- * every screen and provider keeps working unchanged.
+ * Now backed by Supabase (auth + database) and Cloudinary (profile photos).
  */
-export const backend: Backend = localBackend;
+export const backend: Backend = supabaseBackend;
 
 export * from '@/services/types';

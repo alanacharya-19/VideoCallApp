@@ -7,6 +7,8 @@ export type User = {
   isOnline: boolean;
   /** Index into a fixed avatar palette, so an avatar looks the same everywhere. */
   colorIndex: number;
+  /** Profile photo URL from Cloudinary. Falls back to initial avatar when absent. */
+  photoUrl?: string;
 };
 
 export type Session = {
@@ -64,7 +66,7 @@ export type Backend = {
   signOut(): Promise<void>;
 
   /** Updates the signed-in user's profile. */
-  updateProfile(patch: Partial<Pick<User, 'name'>>): Promise<User>;
+  updateProfile(patch: Partial<Pick<User, 'name' | 'photoUrl'>>): Promise<User>;
 
   /** Everyone who has an account, for search and discovery. */
   listUsers(): Promise<User[]>;
@@ -86,4 +88,10 @@ export type Backend = {
   listCallHistory(): Promise<CallRecord[]>;
   recordCall(record: Omit<CallRecord, 'id'>): Promise<void>;
   clearCallHistory(): Promise<void>;
+
+  /** Sign in with Google via OAuth. */
+  signInWithGoogle?(): Promise<void>;
+
+  /** Pick and upload a profile photo. Returns the public URL or null. */
+  updateProfilePhoto?(userId: string): Promise<string | null>;
 };

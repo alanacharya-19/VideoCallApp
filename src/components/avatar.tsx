@@ -1,4 +1,4 @@
-import { StyleSheet } from 'react-native';
+import { Image, StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -16,29 +16,40 @@ export type AvatarProps = {
   isOnline?: boolean;
   /** Picks a stable colour for this person. Omit for a neutral surface. */
   colorIndex?: number;
+  /** Profile photo URL. When set, shows the photo instead of the initial. */
+  photoUrl?: string;
 };
 
-export function Avatar({ name, size = 44, isOnline = false, colorIndex }: AvatarProps) {
+export function Avatar({ name, size = 44, isOnline = false, colorIndex, photoUrl }: AvatarProps) {
   const theme = useTheme();
   const dot = Math.round(size * 0.25);
   const color = colorIndex == null ? undefined : AVATAR_COLORS[colorIndex % AVATAR_COLORS.length];
+  const borderRadius = size / 2;
 
   return (
     <ThemedView
       type={color == null ? 'backgroundSelected' : undefined}
       style={[
         styles.avatar,
-        { width: size, height: size, borderRadius: size / 2 },
+        { width: size, height: size, borderRadius },
         color != null && { backgroundColor: color },
       ]}>
-      <ThemedText
-        style={[
-          styles.initial,
-          { fontSize: size * 0.6, lineHeight: size * 0.75 },
-          color != null && styles.initialOnColor,
-        ]}>
-        {name.charAt(0).toUpperCase()}
-      </ThemedText>
+      {photoUrl ? (
+        <Image
+          source={{ uri: photoUrl }}
+          style={{ width: size, height: size, borderRadius }}
+          resizeMode="cover"
+        />
+      ) : (
+        <ThemedText
+          style={[
+            styles.initial,
+            { fontSize: size * 0.6, lineHeight: size * 0.75 },
+            color != null && styles.initialOnColor,
+          ]}>
+          {name.charAt(0).toUpperCase()}
+        </ThemedText>
+      )}
 
       {isOnline && (
         <ThemedView
@@ -64,6 +75,7 @@ const styles = StyleSheet.create({
   avatar: {
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
   initial: {
     fontFamily: Fonts.rounded,

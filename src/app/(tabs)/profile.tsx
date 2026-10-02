@@ -13,12 +13,14 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { BottomTabInset, Fonts, MaxContentWidth, Spacing, TopBarInset } from '@/constants/theme';
 import { useAuth } from '@/providers/auth-provider';
+import { backend } from '@/services';
 
 export default function ProfileScreen() {
   const router = useRouter();
   const { user, updateProfile } = useAuth();
   const [name, setName] = useState(user?.name ?? '');
   const [saving, setSaving] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   const trimmed = name.trim();
   const isValid = trimmed.length >= 2;
@@ -37,6 +39,27 @@ export default function ProfileScreen() {
       Alert.alert('Could not save', 'Please try again.');
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleChangePhoto() {
+    if (!user) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setUploadingPhoto(true);
+    try {
+      const photoUrl = await (backend as any).updateProfilePhoto(user.id);
+      if (photoUrl) {
+        await updateProfile({ photoUrl });
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } else {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        Alert.alert('Upload failed', 'Could not upload photo. Please try again.');
+      }
+    } catch {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert('Upload failed', 'Could not upload photo. Please try again.');
+    } finally {
+      setUploadingPhoto(false);
     }
   }
 
@@ -60,9 +83,20 @@ export default function ProfileScreen() {
           />
 
           <View style={styles.avatarSection}>
-            <Avatar name={user?.name ?? '?'} size={80} colorIndex={user?.colorIndex} />
+            <Avatar
+              name={user?.name ?? '?'}
+              size={96}
+              colorIndex={user?.colorIndex}
+              photoUrl={user?.photoUrl}
+            />
+            <PrimaryButton
+              label={uploadingPhoto ? 'Uploading…' : 'Change photo'}
+              onPress={handleChangePhoto}
+              loading={uploadingPhoto}
+              disabled={uploadingPhoto}
+            />
             <ThemedText type="small" themeColor="textSecondary" style={styles.avatarHint}>
-              Your avatar is generated from your name
+              Your photo is stored securely in Cloudinary
             </ThemedText>
           </View>
 
@@ -119,7 +153,7 @@ const styles = StyleSheet.create({
   },
   avatarSection: {
     alignItems: 'center',
-    gap: Spacing.two,
+    gap: Spacing.three,
     paddingVertical: Spacing.five,
   },
   avatarHint: {

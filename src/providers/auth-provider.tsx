@@ -19,7 +19,7 @@ type AuthContextValue = {
   signIn: (credentials: Credentials) => Promise<void>;
   signUp: (input: SignUpInput) => Promise<void>;
   signOut: () => Promise<void>;
-  updateProfile: (patch: Partial<Pick<User, 'name'>>) => Promise<void>;
+  updateProfile: (patch: Partial<Pick<User, 'name' | 'photoUrl'>>) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);

@@ -42,22 +42,29 @@ export function PrimaryButton({ label, onPress, loading = false, disabled = fals
 export function SecondaryButton({
   label,
   onPress,
+  loading = false,
   destructive = false,
-}: Omit<PrimaryButtonProps, 'loading' | 'disabled'> & { destructive?: boolean }) {
+}: Omit<PrimaryButtonProps, 'disabled'> & { destructive?: boolean }) {
   const theme = useTheme();
 
   return (
     <Pressable
       onPress={onPress}
+      disabled={loading}
       accessibilityRole="button"
       accessibilityLabel={label}
-      style={({ pressed }) => [styles.button, pressed && styles.pressed]}>
+      accessibilityState={{ disabled: loading, busy: loading }}
+      style={({ pressed }) => [styles.button, pressed && styles.pressed, loading && styles.disabled]}>
       <View style={styles.row}>
-        <ThemedText
-          type="smallBold"
-          style={{ color: destructive ? theme.danger : theme.textSecondary }}>
-          {label}
-        </ThemedText>
+        {loading ? (
+          <ActivityIndicator color={theme.textSecondary} />
+        ) : (
+          <ThemedText
+            type="smallBold"
+            style={{ color: destructive ? theme.danger : theme.textSecondary }}>
+            {label}
+          </ThemedText>
+        )}
       </View>
     </Pressable>
   );

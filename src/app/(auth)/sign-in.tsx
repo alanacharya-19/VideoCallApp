@@ -2,19 +2,24 @@ import { Link } from 'expo-router';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
 
 import { PrimaryButton } from '@/components/primary-button';
+import { SecondaryButton } from '@/components/primary-button';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Fonts, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAuth } from '@/providers/auth-provider';
+import { backend } from '@/services';
+
 export default function SignInScreen() {
   const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   async function handleSubmit() {
     setLoading(true);
@@ -24,6 +29,18 @@ export default function SignInScreen() {
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Something went wrong');
       setLoading(false);
+    }
+  }
+
+  async function handleGoogleSignIn() {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setGoogleLoading(true);
+    setError(null);
+    try {
+      await (backend as any).signInWithGoogle();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Google sign-in failed');
+      setGoogleLoading(false);
     }
   }
 
@@ -76,6 +93,20 @@ export default function SignInScreen() {
 
               <PrimaryButton label="Sign in" onPress={handleSubmit} loading={loading} />
             </View>
+
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <ThemedText type="small" themeColor="textSecondary" style={styles.dividerText}>
+                or
+              </ThemedText>
+              <View style={styles.dividerLine} />
+            </View>
+
+            <SecondaryButton
+              label={googleLoading ? 'Connecting…' : 'Continue with Google'}
+              onPress={handleGoogleSignIn}
+              loading={googleLoading}
+            />
 
             <View style={styles.footer}>
               <View style={styles.footerRow}>
@@ -136,6 +167,20 @@ const styles = StyleSheet.create({
   },
   form: {
     gap: Spacing.three,
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.three,
+  },
+  dividerLine: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: 'rgba(128,128,128,0.3)',
+  },
+  dividerText: {
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   footer: {
     gap: Spacing.three,
