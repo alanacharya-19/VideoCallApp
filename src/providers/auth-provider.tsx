@@ -11,7 +11,7 @@ import {
 import { backend } from '@/services';
 import type { Credentials, SignUpInput, User } from '@/services/types';
 
-type AuthStatus = 'loading' | 'signed-in' | 'signed-out';
+type AuthStatus = 'loading' | 'signed-in' | 'signed-out' | 'needs-verification';
 
 type AuthContextValue = {
   status: AuthStatus;
@@ -20,6 +20,8 @@ type AuthContextValue = {
   signUp: (input: SignUpInput) => Promise<void>;
   signOut: () => Promise<void>;
   updateProfile: (patch: Partial<Pick<User, 'name' | 'photoUrl'>>) => Promise<void>;
+  verifyEmail: (code: string) => Promise<void>;
+  pendingEmail: string | null;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -27,6 +29,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>('loading');
   const [user, setUser] = useState<User | null>(null);
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
 
   // Restore the persisted session before the first render of the app, so the
   // route guard never flashes the wrong screen.
@@ -59,22 +62,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signUp = useCallback(async (input: SignUpInput) => {
     const session = await backend.signUp(input);
     setUser(session.user);
-    setStatus('signed-in');
+    setPendingEmail(input.email);
+    setStatus('needs-verification');
   }, []);
 
   const signOut = useCallback(async () => {
     await backend.signOut();
     setUser(null);
+    setPendingEmail(null);
     setStatus('signed-out');
   }, []);
 
-  const updateProfile = useCallback(async (patch: Partial<Pick<User, 'name'>>) => {
+  const updateProfile = useCallback(async (patch: Partial<Pick<User, 'name' | 'photoUrl'>>) => {
     setUser(await backend.updateProfile(patch));
   }, []);
 
+  const verifyEmail = useCallback(async (code: string) => {
+    const client = (backend as any).getClient?.();
+    if (!client || !pendingEmail) throw new Error('No pending verification');
+
+    const { error } = await client.auth.verifyOtp({
+      email: pendingEmail,
+      token: code,
+      type: 'signup',
+    });
+
+    if (error) throw new Error(error.message);
+    setPendingEmail(null);
+    setStatus('signed-in');
+  }, [pendingEmail]);
+
   const value = useMemo<AuthContextValue>(
-    () => ({ status, user, signIn, signUp, signOut, updateProfile }),
-    [status, user, signIn, signUp, signOut, updateProfile]
+    () => ({ status, user, signIn, signUp, signOut, updateProfile, verifyEmail, pendingEmail }),
+    [status, user, signIn, signUp, signOut, updateProfile, verifyEmail, pendingEmail]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

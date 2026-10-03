@@ -10,5 +10,9 @@ export default function AuthLayout() {
     return <Redirect href="/(tabs)" />;
   }
 
+  if (status === 'needs-verification') {
+    return <Redirect href="/(auth)/verify-email" />;
+  }
+
   return <Stack screenOptions={{ headerShown: false, animation: 'fade' }} />;
 }

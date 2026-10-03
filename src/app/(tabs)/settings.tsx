@@ -165,6 +165,12 @@ export default function SettingsScreen() {
               value="1.0.0"
             />
             <SettingRow
+              icon={{ ios: 'questionmark.circle', android: 'help', web: 'help' }}
+              label="Help & FAQ"
+              showChevron
+              onPress={() => router.push('/help')}
+            />
+            <SettingRow
               icon={{ ios: 'doc.text', android: 'description', web: 'description' }}
               label="Privacy policy"
               showChevron

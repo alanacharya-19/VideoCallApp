@@ -42,7 +42,6 @@ export default function RootLayout() {
                   name="incoming-call"
                   options={{ animation: 'slide_from_bottom', presentation: 'fullScreenModal' }}
                 />
-
               </Stack>
             </Gate>
           </SocialProvider>

@@ -80,6 +80,11 @@ async function uploadPhoto(uri: string, userId: string): Promise<string | null> 
   }
 }
 
+/** Expose the Supabase client for direct access (OTP verification, etc.) */
+export function getClient() {
+  return getSupabase();
+}
+
 export const supabaseBackend: Backend = {
   // ─── Auth ───────────────────────────────────────────────────────────────
 
@@ -105,7 +110,16 @@ export const supabaseBackend: Backend = {
   async signIn({ email, password }: Credentials) {
     const client = getSupabase();
     const { data, error } = await client.auth.signInWithPassword({ email, password });
-    if (error) throw new Error(error.message);
+    if (error) {
+      // Map Supabase error to user-friendly message
+      if (error.message.includes('Invalid login credentials')) {
+        throw new Error('Incorrect email or password. Please try again.');
+      }
+      if (error.message.includes('Email not confirmed')) {
+        throw new Error('Please verify your email before signing in.');
+      }
+      throw new Error(error.message);
+    }
 
     const { data: profile } = await client
       .from('profiles')
@@ -122,7 +136,15 @@ export const supabaseBackend: Backend = {
   async signUp({ name, email, password }: SignUpInput) {
     const client = getSupabase();
     const { data, error } = await client.auth.signUp({ email, password });
-    if (error) throw new Error(error.message);
+    if (error) {
+      if (error.message.includes('already registered')) {
+        throw new Error('An account with this email already exists.');
+      }
+      if (error.message.includes('password')) {
+        throw new Error('Password must be at least 6 characters.');
+      }
+      throw new Error(error.message);
+    }
 
     // Create profile
     const { data: profile } = await client

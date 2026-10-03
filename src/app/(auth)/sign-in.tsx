@@ -4,8 +4,7 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 
-import { PrimaryButton } from '@/components/primary-button';
-import { SecondaryButton } from '@/components/primary-button';
+import { PrimaryButton, SecondaryButton } from '@/components/primary-button';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -94,6 +93,19 @@ export default function SignInScreen() {
               <PrimaryButton label="Sign in" onPress={handleSubmit} loading={loading} />
             </View>
 
+            <View style={styles.footer}>
+              <Link href="/(auth)/forgot-password" asChild>
+                <Pressable
+                  style={({ pressed }) => pressed && styles.pressed}
+                  accessibilityRole="link"
+                  accessibilityLabel="Forgot password">
+                  <ThemedText type="small" themeColor="textSecondary">
+                    Forgot password?
+                  </ThemedText>
+                </Pressable>
+              </Link>
+            </View>
+
             <View style={styles.divider}>
               <View style={styles.dividerLine} />
               <ThemedText type="small" themeColor="textSecondary" style={styles.dividerText}>
@@ -108,20 +120,18 @@ export default function SignInScreen() {
               loading={googleLoading}
             />
 
-            <View style={styles.footer}>
-              <View style={styles.footerRow}>
-                <ThemedText type="small" themeColor="textSecondary">
-                  New here?
-                </ThemedText>
-                <Link href="/(auth)/sign-up" asChild>
-                  <Pressable
-                    style={({ pressed }) => pressed && styles.pressed}
-                    accessibilityRole="link"
-                    accessibilityLabel="Create an account">
-                    <ThemedText type="smallBold">Create an account</ThemedText>
-                  </Pressable>
-                </Link>
-              </View>
+            <View style={styles.footerRow}>
+              <ThemedText type="small" themeColor="textSecondary">
+                New here?
+              </ThemedText>
+              <Link href="/(auth)/sign-up" asChild>
+                <Pressable
+                  style={({ pressed }) => pressed && styles.pressed}
+                  accessibilityRole="link"
+                  accessibilityLabel="Create an account">
+                  <ThemedText type="smallBold">Create an account</ThemedText>
+                </Pressable>
+              </Link>
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
@@ -168,6 +178,9 @@ const styles = StyleSheet.create({
   form: {
     gap: Spacing.three,
   },
+  footer: {
+    alignItems: 'center',
+  },
   divider: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -181,10 +194,6 @@ const styles = StyleSheet.create({
   dividerText: {
     textTransform: 'uppercase',
     letterSpacing: 1,
-  },
-  footer: {
-    gap: Spacing.three,
-    alignItems: 'center',
   },
   footerRow: {
     flexDirection: 'row',
