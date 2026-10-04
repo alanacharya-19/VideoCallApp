@@ -140,7 +140,7 @@ export default function HelpScreen() {
               <SymbolView
                 name={{ ios: 'envelope.fill', android: 'email', web: 'email' }}
                 size={16}
-                tintColor="#E8637A"
+                tintColor="#4F46E5"
               />
               <ThemedText type="smallBold" style={styles.contactButtonText}>
                 support@meetnow.app
@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
     borderRadius: Spacing.two,
   },
   contactButtonText: {
-    color: '#E8637A',
+    color: '#4F46E5',
   },
   pressed: {
     opacity: 0.6,

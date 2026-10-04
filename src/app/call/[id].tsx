@@ -315,7 +315,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   hangUp: {
-    backgroundColor: '#E5484D',
+    backgroundColor: '#EF4444',
   },
   pressed: {
     opacity: 0.6,

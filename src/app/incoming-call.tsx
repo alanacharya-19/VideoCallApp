@@ -161,10 +161,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   accept: {
-    backgroundColor: '#34C759',
+    backgroundColor: '#22C55E',
   },
   decline: {
-    backgroundColor: '#FF3B30',
+    backgroundColor: '#EF4444',
   },
   pressed: {
     opacity: 0.6,

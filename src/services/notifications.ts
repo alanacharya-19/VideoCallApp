@@ -23,7 +23,7 @@ export async function setupNotifications(): Promise<boolean> {
       name: 'Incoming Calls',
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#E8637A',
+      lightColor: '#4F46E5',
       sound: 'default',
       enableVibrate: true,
       lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,

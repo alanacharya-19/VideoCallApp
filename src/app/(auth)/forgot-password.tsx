@@ -475,10 +475,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   digitInputFilled: {
-    borderColor: '#E8637A',
+    borderColor: '#4F46E5',
   },
   digitInputExpired: {
-    borderColor: '#FF3B30',
+    borderColor: '#EF4444',
     opacity: 0.5,
   },
   timerRow: {
@@ -497,7 +497,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   error: {
-    color: '#FF3B30',
+    color: '#EF4444',
     textAlign: 'center',
   },
   footer: {

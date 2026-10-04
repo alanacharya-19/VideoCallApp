@@ -250,7 +250,7 @@ export const supabaseBackend: Backend = {
 
     const { data, error } = await client
       .from('friend_requests')
-      .select('*, profiles!friend_requests_from_user_id_fkey(*), profiles!friend_requests_to_user_id_fkey(*)')
+      .select('*')
       .eq('status', 'accepted')
       .or(`from_user_id.eq.${user.id},to_user_id.eq.${user.id}`);
 

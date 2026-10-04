@@ -6,7 +6,7 @@ import { Fonts } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 /** Stable per-user avatar colors, so a person looks the same everywhere. */
-const AVATAR_COLORS = ['#E8637A', '#3FB6A8', '#4A90D9', '#7C6BD6', '#E08A3C', '#3FA96B'] as const;
+const AVATAR_COLORS = ['#4F46E5', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4'] as const;
 
 export type AvatarProps = {
   name: string;

@@ -7,8 +7,8 @@ import { Spacing } from '@/constants/theme';
 type Quality = 'excellent' | 'good' | 'fair' | 'poor' | 'unknown';
 
 const qualityConfig: Record<Quality, { icon: string; color: string; label: string }> = {
-  excellent: { icon: 'wifi', color: '#34C759', label: 'Excellent' },
-  good: { icon: 'wifi', color: '#30D158', label: 'Good' },
+  excellent: { icon: 'wifi', color: '#22C55E', label: 'Excellent' },
+  good: { icon: 'wifi', color: '#22C55E', label: 'Good' },
   fair: { icon: 'wifi.exclamationmark', color: '#FF9F0A', label: 'Fair' },
   poor: { icon: 'wifi.exclamationmark', color: '#FF453A', label: 'Poor' },
   unknown: { icon: 'wifi.slash', color: '#8E8E93', label: 'Unknown' },
