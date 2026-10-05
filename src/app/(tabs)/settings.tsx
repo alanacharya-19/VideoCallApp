@@ -1,4 +1,4 @@
-import { SymbolView, type SymbolViewProps } from 'expo-symbols';
+import { SymbolView } from 'expo-symbols';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
@@ -8,15 +8,13 @@ import * as Haptics from 'expo-haptics';
 import { ScreenHeader } from '@/components/screen-header';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { BottomTabInset, Fonts, MaxContentWidth, Spacing, TopBarInset } from '@/constants/theme';
+import { BottomTabInset, Fonts, MaxContentWidth, Radius, Shadows, Spacing, TopBarInset } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/providers/auth-provider';
 import { useSocial } from '@/providers/social-provider';
 
-type IconName = SymbolViewProps['name'];
-
 type SettingRowProps = {
-  icon: IconName;
+  icon: { ios: any; android: any; web: any };
   label: string;
   value?: string;
   onPress?: () => void;
@@ -35,7 +33,7 @@ function SettingRow({ icon, label, value, onPress, destructive, showChevron }: S
       accessibilityRole={onPress ? 'button' : undefined}
       accessibilityLabel={label}
       style={({ pressed }) => [pressed && { opacity: 0.6 }]}>
-      <ThemedView type="backgroundElement" style={styles.row}>
+      <ThemedView type="card" style={styles.row}>
         <SymbolView name={icon} size={20} tintColor={textColor} />
         <ThemedText style={[styles.rowLabel, { color: textColor }]}>{label}</ThemedText>
         <View style={styles.rowTrailing}>
@@ -63,7 +61,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       <ThemedText type="smallBold" themeColor="textSecondary" style={styles.sectionTitle}>
         {title}
       </ThemedText>
-      <ThemedView type="backgroundElement" style={styles.sectionCard}>
+      <ThemedView type="card" style={styles.sectionCard}>
         {children}
       </ThemedView>
     </View>
@@ -228,7 +226,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   sectionCard: {
-    borderRadius: Spacing.three,
+    borderRadius: Radius.large,
     overflow: 'hidden',
   },
   row: {

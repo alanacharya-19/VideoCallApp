@@ -1,15 +1,22 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
+// useEffect already imported
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 
+import { AnimatedButton } from '@/components/animated-button';
 import { IconButton } from '@/components/icon-button';
-import { PrimaryButton } from '@/components/primary-button';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Fonts, MaxContentWidth, Spacing } from '@/constants/theme';
+import { Fonts, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { backend } from '@/services';
 
 const CODE_LENGTH = 6;
@@ -17,6 +24,8 @@ const EXPIRY_SECONDS = 60;
 const RESEND_COOLDOWN = 30;
 
 type Step = 'email' | 'code' | 'newPassword' | 'done';
+
+const AnimatedThemedView = Animated.createAnimatedComponent(ThemedView);
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
@@ -31,6 +40,20 @@ export default function ForgotPasswordScreen() {
   const [expired, setExpired] = useState(false);
   const [cooldown, setCooldown] = useState(0);
   const inputs = useRef<(TextInput | null)[]>([]);
+
+  // Entrance animations
+  const contentOpacity = useSharedValue(0);
+  const contentTranslateY = useSharedValue(30);
+
+  useEffect(() => {
+    contentOpacity.value = withTiming(1, { duration: 500 });
+    contentTranslateY.value = withSpring(0, { damping: 15, stiffness: 100 });
+  }, []);
+
+  const contentStyle = useAnimatedStyle(() => ({
+    opacity: contentOpacity.value,
+    transform: [{ translateY: contentTranslateY.value }],
+  }));
 
   // Countdown timer for code expiry
   useEffect(() => {
@@ -233,52 +256,49 @@ export default function ForgotPasswordScreen() {
               />
             </View>
 
+            <AnimatedThemedView style={[styles.hero, contentStyle]}>
+              <View style={styles.iconContainer}>
+                <View style={styles.iconCircle}>
+                  <ThemedText style={styles.iconText}>
+                    {step === 'email' ? '🔑' : step === 'code' ? '✉' : step === 'newPassword' ? '🔒' : '✓'}
+                  </ThemedText>
+                </View>
+              </View>
+              <ThemedText style={styles.wordmark}>
+                {step === 'email' && 'Forgot password'}
+                {step === 'code' && 'Enter code'}
+                {step === 'newPassword' && 'New password'}
+                {step === 'done' && 'Password reset'}
+              </ThemedText>
+              <ThemedText themeColor="textSecondary" style={styles.tagline}>
+                {step === 'email' && `Enter your email and we'll send you a ${CODE_LENGTH}-digit code to reset your password.`}
+                {step === 'code' && `Enter the ${CODE_LENGTH}-digit code sent to ${email}`}
+                {step === 'newPassword' && 'Enter a new password for your account.'}
+                {step === 'done' && 'Your password has been reset successfully. Sign in with your new password.'}
+              </ThemedText>
+            </AnimatedThemedView>
+
             {step === 'email' && (
-              <>
-                <View style={styles.hero}>
-                  <ThemedText style={styles.wordmark}>
-                    Forgot password
-                  </ThemedText>
-                  <ThemedText themeColor="textSecondary" style={styles.tagline}>
-                    Enter your email and we'll send you a {CODE_LENGTH}-digit code to reset your password.
-                  </ThemedText>
-                </View>
-
-                <View style={styles.form}>
-                  <TextField
-                    label="Email"
-                    value={email}
-                    onChangeText={setEmail}
-                    placeholder="you@company.com"
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    autoComplete="email"
-                    textContentType="emailAddress"
-                    returnKeyType="go"
-                    onSubmitEditing={handleSendCode}
-                    error={error ?? undefined}
-                  />
-
-                  <PrimaryButton
-                    label="Send code"
-                    onPress={handleSendCode}
-                    loading={loading}
-                  />
-                </View>
-              </>
+              <Animated.View style={[styles.form, contentStyle]}>
+                <TextField
+                  label="Email"
+                  value={email}
+                  onChangeText={setEmail}
+                  placeholder="you@company.com"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoComplete="email"
+                  textContentType="emailAddress"
+                  returnKeyType="go"
+                  onSubmitEditing={handleSendCode}
+                  error={error ?? undefined}
+                />
+                <AnimatedButton label="Send code" onPress={handleSendCode} loading={loading} />
+              </Animated.View>
             )}
 
             {step === 'code' && (
-              <>
-                <View style={styles.hero}>
-                  <ThemedText style={styles.wordmark}>
-                    Enter code
-                  </ThemedText>
-                  <ThemedText themeColor="textSecondary" style={styles.tagline}>
-                    Enter the {CODE_LENGTH}-digit code sent to {email}
-                  </ThemedText>
-                </View>
-
+              <Animated.View style={[styles.codeSection, contentStyle]}>
                 <View style={styles.codeRow}>
                   {code.map((digit, index) => (
                     <TextInput
@@ -319,7 +339,7 @@ export default function ForgotPasswordScreen() {
                   </ThemedText>
                 )}
 
-                <PrimaryButton
+                <AnimatedButton
                   label={expired ? 'Request new code' : 'Verify code'}
                   onPress={expired ? handleResend : handleVerifyCode}
                   loading={loading || resending}
@@ -342,58 +362,40 @@ export default function ForgotPasswordScreen() {
                     </ThemedText>
                   </Pressable>
                 </View>
-              </>
+              </Animated.View>
             )}
 
             {step === 'newPassword' && (
-              <>
-                <View style={styles.hero}>
-                  <ThemedText style={styles.wordmark}>
-                    New password
-                  </ThemedText>
-                  <ThemedText themeColor="textSecondary" style={styles.tagline}>
-                    Enter a new password for your account.
-                  </ThemedText>
-                </View>
-
-                <View style={styles.form}>
-                  <TextField
-                    label="New password"
-                    value={newPassword}
-                    onChangeText={setNewPassword}
-                    placeholder="••••••••"
-                    secureTextEntry
-                    autoCapitalize="none"
-                    autoComplete="new-password"
-                    textContentType="newPassword"
-                    returnKeyType="go"
-                    onSubmitEditing={handleResetPassword}
-                    error={error ?? undefined}
-                  />
-
-                  <PrimaryButton
-                    label="Reset password"
-                    onPress={handleResetPassword}
-                    loading={loading}
-                    disabled={!isPasswordValid}
-                  />
-                </View>
-              </>
+              <Animated.View style={[styles.form, contentStyle]}>
+                <TextField
+                  label="New password"
+                  value={newPassword}
+                  onChangeText={setNewPassword}
+                  placeholder="••••••••"
+                  secureTextEntry
+                  autoCapitalize="none"
+                  autoComplete="newPassword"
+                  textContentType={"new-password" as any}
+                  returnKeyType="go"
+                  onSubmitEditing={handleResetPassword}
+                  error={error ?? undefined}
+                />
+                <AnimatedButton
+                  label="Reset password"
+                  onPress={handleResetPassword}
+                  loading={loading}
+                  disabled={!isPasswordValid}
+                />
+              </Animated.View>
             )}
 
             {step === 'done' && (
-              <View style={styles.hero}>
-                <ThemedText style={styles.wordmark}>
-                  Password reset
-                </ThemedText>
-                <ThemedText themeColor="textSecondary" style={styles.tagline}>
-                  Your password has been reset successfully. Sign in with your new password.
-                </ThemedText>
-                <PrimaryButton
+              <Animated.View style={[styles.form, contentStyle]}>
+                <AnimatedButton
                   label="Back to sign in"
                   onPress={() => router.replace('/(auth)/sign-in')}
                 />
-              </View>
+              </Animated.View>
             )}
 
             {step === 'email' && (
@@ -442,21 +444,41 @@ const styles = StyleSheet.create({
   },
   hero: {
     gap: Spacing.two,
+    alignItems: 'center',
+  },
+  iconContainer: {
+    marginBottom: Spacing.two,
+  },
+  iconCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: Radius.full,
+    backgroundColor: '#EEF2FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconText: {
+    fontSize: 32,
   },
   wordmark: {
     fontFamily: Fonts.rounded,
-    fontSize: 32,
-    lineHeight: 40,
+    fontSize: 28,
+    lineHeight: 36,
     fontWeight: '800',
     letterSpacing: -0.5,
+    textAlign: 'center',
   },
   tagline: {
     fontFamily: Fonts.sans,
     fontSize: 15,
     lineHeight: 21,
+    textAlign: 'center',
   },
   form: {
     gap: Spacing.three,
+  },
+  codeSection: {
+    gap: Spacing.four,
   },
   codeRow: {
     flexDirection: 'row',
@@ -467,15 +489,17 @@ const styles = StyleSheet.create({
   digitInput: {
     width: 48,
     height: 56,
-    borderRadius: Spacing.two,
+    borderRadius: Radius.medium,
     borderWidth: 2,
-    borderColor: 'rgba(128,128,128,0.3)',
+    borderColor: 'rgba(128,128,128,0.2)',
     fontFamily: Fonts.rounded,
     fontSize: 24,
     fontWeight: '700',
+    backgroundColor: '#FFFFFF',
   },
   digitInputFilled: {
     borderColor: '#4F46E5',
+    backgroundColor: '#EEF2FF',
   },
   digitInputExpired: {
     borderColor: '#EF4444',
@@ -491,7 +515,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   expiredText: {
-    color: '#FF3B30',
+    color: '#EF4444',
     fontFamily: Fonts.sans,
     fontSize: 13,
     fontWeight: '600',

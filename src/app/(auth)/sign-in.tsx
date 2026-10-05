@@ -1,5 +1,5 @@
 import { Link } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -35,16 +35,12 @@ export default function SignInScreen() {
   const formOpacity = useSharedValue(0);
   const formTranslateY = useSharedValue(30);
 
-  Animated.useAnimatedReaction(
-    () => true,
-    () => {
-      logoOpacity.value = withTiming(1, { duration: 600 });
-      logoScale.value = withSpring(1, { damping: 12, stiffness: 100 });
-      formOpacity.value = withTiming(1, { duration: 600 });
-      formTranslateY.value = withSpring(0, { damping: 15, stiffness: 80 });
-    },
-    []
-  );
+  useEffect(() => {
+    logoOpacity.value = withTiming(1, { duration: 600 });
+    logoScale.value = withSpring(1, { damping: 12, stiffness: 100 });
+    formOpacity.value = withTiming(1, { duration: 600 });
+    formTranslateY.value = withSpring(0, { damping: 15, stiffness: 80 });
+  }, []);
 
   const logoStyle = useAnimatedStyle(() => ({
     opacity: logoOpacity.value,

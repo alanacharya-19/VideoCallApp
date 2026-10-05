@@ -1,19 +1,27 @@
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 
+import { AnimatedButton } from '@/components/animated-button';
 import { Avatar } from '@/components/avatar';
 import { IconButton } from '@/components/icon-button';
-import { PrimaryButton } from '@/components/primary-button';
 import { ScreenHeader } from '@/components/screen-header';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { BottomTabInset, Fonts, MaxContentWidth, Spacing, TopBarInset } from '@/constants/theme';
+import { BottomTabInset, Fonts, MaxContentWidth, Radius, Shadows, Spacing, TopBarInset } from '@/constants/theme';
 import { useAuth } from '@/providers/auth-provider';
 import { backend } from '@/services';
+
+const AnimatedThemedView = Animated.createAnimatedComponent(ThemedView);
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -25,6 +33,29 @@ export default function ProfileScreen() {
   const trimmed = name.trim();
   const isValid = trimmed.length >= 2;
   const hasChanges = trimmed !== user?.name;
+
+  // Entrance animations
+  const avatarScale = useSharedValue(0.8);
+  const avatarOpacity = useSharedValue(0);
+  const formOpacity = useSharedValue(0);
+  const formTranslateY = useSharedValue(20);
+
+  useEffect(() => {
+    avatarOpacity.value = withTiming(1, { duration: 500 });
+    avatarScale.value = withSpring(1, { damping: 12, stiffness: 100 });
+    formOpacity.value = withTiming(1, { duration: 500 });
+    formTranslateY.value = withSpring(0, { damping: 15, stiffness: 100 });
+  }, []);
+
+  const avatarStyle = useAnimatedStyle(() => ({
+    opacity: avatarOpacity.value,
+    transform: [{ scale: avatarScale.value }],
+  }));
+
+  const formStyle = useAnimatedStyle(() => ({
+    opacity: formOpacity.value,
+    transform: [{ translateY: formTranslateY.value }],
+  }));
 
   async function handleSave() {
     if (!isValid || !hasChanges) return;
@@ -82,25 +113,27 @@ export default function ProfileScreen() {
             }
           />
 
-          <View style={styles.avatarSection}>
+          <AnimatedThemedView style={[styles.avatarSection, avatarStyle]}>
             <Avatar
               name={user?.name ?? '?'}
               size={96}
               colorIndex={user?.colorIndex}
               photoUrl={user?.photoUrl}
             />
-            <PrimaryButton
+            <AnimatedButton
               label={uploadingPhoto ? 'Uploading…' : 'Change photo'}
               onPress={handleChangePhoto}
               loading={uploadingPhoto}
               disabled={uploadingPhoto}
+              variant="secondary"
+              size="small"
             />
             <ThemedText type="small" themeColor="textSecondary" style={styles.avatarHint}>
               Your photo is stored securely in Cloudinary
             </ThemedText>
-          </View>
+          </AnimatedThemedView>
 
-          <View style={styles.form}>
+          <Animated.View style={[styles.form, formStyle]}>
             <TextField
               label="Display name"
               value={name}
@@ -118,9 +151,9 @@ export default function ProfileScreen() {
               editable={false}
               placeholder="Email"
             />
-          </View>
+          </Animated.View>
 
-          <PrimaryButton
+          <AnimatedButton
             label="Save changes"
             onPress={() => void handleSave()}
             loading={saving}

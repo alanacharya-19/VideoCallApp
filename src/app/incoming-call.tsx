@@ -4,19 +4,24 @@ import { useEffect, useRef } from 'react';
 import { Animated, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
+import {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+  withRepeat,
+  withSequence,
+} from 'react-native-reanimated';
 
 import { Avatar } from '@/components/avatar';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Fonts, MaxContentWidth, Spacing } from '@/constants/theme';
+import { Fonts, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useSocial } from '@/providers/social-provider';
 
-/**
- * Incoming call screen — shown when a push notification is tapped or when
- * the app receives a call signal. The caller info comes from the notification
- * payload via query params.
- */
+const AnimatedThemedView = Animated.createAnimatedComponent(ThemedView);
+
 export default function IncomingCallScreen() {
   const router = useRouter();
   const theme = useTheme();
@@ -29,11 +34,22 @@ export default function IncomingCallScreen() {
   const colorIndex = peer?.colorIndex ?? 0;
   const isVideo = params.mode === 'video';
 
+  // Entrance animations
+  const contentOpacity = useSharedValue(0);
+  const contentTranslateY = useSharedValue(30);
+  const avatarScale = useSharedValue(0.8);
+
   useEffect(() => {
-    // Pulse animation for the avatar
+    contentOpacity.value = withTiming(1, { duration: 500 });
+    contentTranslateY.value = withSpring(0, { damping: 15, stiffness: 100 });
+    avatarScale.value = withSpring(1, { damping: 12, stiffness: 100 });
+  }, []);
+
+  // Pulse animation
+  useEffect(() => {
     Animated.loop(
       Animated.sequence([
-        Animated.timing(pulse, { toValue: 1.15, duration: 1000, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 1.1, duration: 1000, useNativeDriver: true }),
         Animated.timing(pulse, { toValue: 1, duration: 1000, useNativeDriver: true }),
       ])
     ).start();
@@ -46,6 +62,15 @@ export default function IncomingCallScreen() {
 
     return () => clearInterval(interval);
   }, [pulse]);
+
+  const contentStyle = useAnimatedStyle(() => ({
+    opacity: contentOpacity.value,
+    transform: [{ translateY: contentTranslateY.value }],
+  }));
+
+  const avatarStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: avatarScale.value }],
+  }));
 
   function accept() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
@@ -60,13 +85,15 @@ export default function IncomingCallScreen() {
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
-        <View style={styles.content}>
+        <AnimatedThemedView style={[styles.content, contentStyle]}>
           <ThemedText type="smallBold" themeColor="textSecondary" style={styles.label}>
             {isVideo ? 'Incoming video call' : 'Incoming call'}
           </ThemedText>
 
           <Animated.View style={{ transform: [{ scale: pulse }] }}>
-            <Avatar name={name} size={120} colorIndex={colorIndex} />
+            <AnimatedThemedView style={[styles.avatarContainer, avatarStyle]}>
+              <Avatar name={name} size={120} colorIndex={colorIndex} photoUrl={peer?.photoUrl} />
+            </AnimatedThemedView>
           </Animated.View>
 
           <ThemedText style={styles.name}>{name}</ThemedText>
@@ -110,7 +137,7 @@ export default function IncomingCallScreen() {
               </ThemedText>
             </View>
           </View>
-        </View>
+        </AnimatedThemedView>
       </SafeAreaView>
     </ThemedView>
   );
@@ -137,6 +164,9 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
+  avatarContainer: {
+    marginBottom: Spacing.two,
+  },
   name: {
     fontFamily: Fonts.rounded,
     fontSize: 32,
@@ -156,7 +186,7 @@ const styles = StyleSheet.create({
   actionButton: {
     width: 72,
     height: 72,
-    borderRadius: 36,
+    borderRadius: Radius.full,
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { StyleSheet, View, type ViewProps } from 'react-native';
 import Animated, {
   useAnimatedStyle,
@@ -25,14 +26,10 @@ export function AnimatedCard({ children, delay = 0, onPress, style, ...rest }: A
   const scale = useSharedValue(1);
 
   // Entrance animation
-  Animated.useAnimatedReaction(
-    () => true,
-    () => {
-      opacity.value = withTiming(1, { duration: 400 });
-      translateY.value = withSpring(0, { damping: 15, stiffness: 100 });
-    },
-    []
-  );
+  useEffect(() => {
+    opacity.value = withTiming(1, { duration: 400 });
+    translateY.value = withSpring(0, { damping: 15, stiffness: 100 });
+  }, []);
 
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
@@ -55,7 +52,7 @@ export function AnimatedCard({ children, delay = 0, onPress, style, ...rest }: A
       type="card"
       style={[
         styles.card,
-        Shadows[theme === 'dark' ? 'dark' : 'light'].medium,
+        Shadows.light.medium,
         style,
         animatedStyle,
       ]}

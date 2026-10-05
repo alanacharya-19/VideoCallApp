@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
+// useEffect already imported
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -42,14 +43,10 @@ export default function VerifyEmailScreen() {
   const contentOpacity = useSharedValue(0);
   const contentTranslateY = useSharedValue(30);
 
-  Animated.useAnimatedReaction(
-    () => true,
-    () => {
-      contentOpacity.value = withTiming(1, { duration: 500 });
-      contentTranslateY.value = withSpring(0, { damping: 15, stiffness: 100 });
-    },
-    []
-  );
+  useEffect(() => {
+    contentOpacity.value = withTiming(1, { duration: 500 });
+    contentTranslateY.value = withSpring(0, { damping: 15, stiffness: 100 });
+  }, []);
 
   const contentStyle = useAnimatedStyle(() => ({
     opacity: contentOpacity.value,

@@ -3,11 +3,17 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SymbolView } from 'expo-symbols';
 import * as Haptics from 'expo-haptics';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 
 import { ScreenHeader } from '@/components/screen-header';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { BottomTabInset, Fonts, MaxContentWidth, Spacing, TopBarInset } from '@/constants/theme';
+import { BottomTabInset, Fonts, MaxContentWidth, Radius, Spacing, TopBarInset } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 type FAQItem = {
@@ -61,11 +67,20 @@ const faqs: FAQItem[] = [
 function FAQAccordion({ item, isLast }: { item: FAQItem; isLast: boolean }) {
   const theme = useTheme();
   const [expanded, setExpanded] = useState(false);
+  const height = useSharedValue(0);
+  const opacity = useSharedValue(0);
 
   function toggle() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setExpanded((prev) => !prev);
+    height.value = withSpring(expanded ? 0 : 1, { damping: 15, stiffness: 100 });
+    opacity.value = withTiming(expanded ? 0 : 1, { duration: 200 });
   }
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    height: height.value === 0 ? undefined : height.value * 100,
+    opacity: opacity.value,
+  }));
 
   return (
     <View
@@ -114,7 +129,7 @@ export default function HelpScreen() {
             Frequently Asked Questions
           </ThemedText>
 
-          <ThemedView type="backgroundElement" style={styles.faqCard}>
+          <ThemedView type="card" style={styles.faqCard}>
             {faqs.map((faq, index) => (
               <FAQAccordion
                 key={faq.question}
@@ -128,7 +143,7 @@ export default function HelpScreen() {
             Contact Support
           </ThemedText>
 
-          <ThemedView type="backgroundElement" style={styles.contactCard}>
+          <ThemedView type="card" style={styles.contactCard}>
             <ThemedText style={styles.contactText}>
               Need more help? Reach out to our support team and we'll get back to you within 24 hours.
             </ThemedText>
@@ -181,7 +196,7 @@ const styles = StyleSheet.create({
   },
   faqCard: {
     alignSelf: 'stretch',
-    borderRadius: Spacing.three,
+    borderRadius: Radius.large,
     overflow: 'hidden',
   },
   faqItem: {
@@ -209,7 +224,7 @@ const styles = StyleSheet.create({
   },
   contactCard: {
     alignSelf: 'stretch',
-    borderRadius: Spacing.three,
+    borderRadius: Radius.large,
     padding: Spacing.four,
     gap: Spacing.three,
   },
@@ -225,7 +240,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     paddingVertical: Spacing.two,
     paddingHorizontal: Spacing.three,
-    borderRadius: Spacing.two,
+    borderRadius: Radius.full,
   },
   contactButtonText: {
     color: '#4F46E5',

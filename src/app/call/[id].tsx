@@ -1,16 +1,24 @@
 import { SymbolView } from 'expo-symbols';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+// useEffect already imported
 import { Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+  withRepeat,
+  withSequence,
+} from 'react-native-reanimated';
 
 import { Avatar } from '@/components/avatar';
 import { CallQualityIndicator } from '@/components/call-quality';
 import { ThemedText } from '@/components/themed-text';
-// VideoView imports removed — using simulated fallback for Expo Go compatibility
 import { ThemedView } from '@/components/themed-view';
-import { Fonts, MaxContentWidth, Spacing } from '@/constants/theme';
+import { Fonts, MaxContentWidth, Radius, Shadows, Spacing } from '@/constants/theme';
 import { env } from '@/config/env';
 import { useTheme } from '@/hooks/use-theme';
 import { useSocial } from '@/providers/social-provider';
@@ -31,6 +39,8 @@ const controls = [
 ] as const;
 
 type ControlKey = (typeof controls)[number]['key'];
+
+const AnimatedThemedView = Animated.createAnimatedComponent(ThemedView);
 
 export default function CallScreen() {
   const router = useRouter();
@@ -58,6 +68,46 @@ export default function CallScreen() {
   const callService = useRef<CallService | null>(null);
   const channelName = useMemo(() => `call-${params.id}-${Date.now()}`, [params.id]);
   const uid = useMemo(() => Math.floor(Math.random() * 100000), []);
+
+  // Entrance animations
+  const avatarScale = useSharedValue(0.8);
+  const avatarOpacity = useSharedValue(0);
+  const controlsOpacity = useSharedValue(0);
+  const controlsTranslateY = useSharedValue(30);
+  const pulseScale = useSharedValue(1);
+
+  useEffect(() => {
+    avatarOpacity.value = withTiming(1, { duration: 500 });
+    avatarScale.value = withSpring(1, { damping: 12, stiffness: 100 });
+    controlsOpacity.value = withTiming(1, { duration: 500 });
+    controlsTranslateY.value = withSpring(0, { damping: 15, stiffness: 100 });
+  }, []);
+
+  // Pulse animation when connected
+  useEffect(() => {
+    if (state === 'connected') {
+      pulseScale.value = withRepeat(
+        withSequence(
+          withTiming(1.05, { duration: 1000 }),
+          withTiming(1, { duration: 1000 })
+        ),
+        -1,
+        true
+      );
+    } else {
+      pulseScale.value = withTiming(1, { duration: 200 });
+    }
+  }, [state, pulseScale]);
+
+  const avatarStyle = useAnimatedStyle(() => ({
+    opacity: avatarOpacity.value,
+    transform: [{ scale: avatarScale.value * pulseScale.value }],
+  }));
+
+  const controlsStyle = useAnimatedStyle(() => ({
+    opacity: controlsOpacity.value,
+    transform: [{ translateY: controlsTranslateY.value }],
+  }));
 
   // Initialize call service and join channel
   useEffect(() => {
@@ -166,15 +216,15 @@ export default function CallScreen() {
         </View>
 
         <View style={styles.stage}>
-          <View style={styles.peer}>
-            <Avatar name={peer?.name ?? '?'} size={112} colorIndex={peer?.colorIndex} />
+          <AnimatedThemedView style={[styles.peer, avatarStyle]}>
+            <Avatar name={peer?.name ?? '?'} size={112} colorIndex={peer?.colorIndex} photoUrl={peer?.photoUrl} />
             <ThemedText style={styles.peerName}>{peer?.name ?? 'Unknown'}</ThemedText>
             <ThemedText themeColor="textSecondary" style={styles.status}>
               {state === 'connecting' && 'Connecting…'}
               {state === 'connected' && formatDuration(seconds)}
               {state === 'ended' && 'Call ended'}
             </ThemedText>
-          </View>
+          </AnimatedThemedView>
 
           {state === 'connecting' && (
             <View style={styles.badge}>
@@ -189,7 +239,7 @@ export default function CallScreen() {
           )}
         </View>
 
-        <View style={styles.controls}>
+        <Animated.View style={[styles.controls, controlsStyle]}>
           {controls.map((control) => {
             const isOn = muted[control.key];
             return (
@@ -233,7 +283,7 @@ export default function CallScreen() {
               End
             </ThemedText>
           </View>
-        </View>
+        </Animated.View>
       </SafeAreaView>
     </ThemedView>
   );
@@ -264,7 +314,7 @@ const styles = StyleSheet.create({
   circleButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radius.full,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -294,7 +344,7 @@ const styles = StyleSheet.create({
   badge: {
     paddingVertical: Spacing.one,
     paddingHorizontal: Spacing.three,
-    borderRadius: Spacing.three,
+    borderRadius: Radius.full,
   },
   controls: {
     flexDirection: 'row',
@@ -310,7 +360,7 @@ const styles = StyleSheet.create({
   controlButton: {
     width: 60,
     height: 60,
-    borderRadius: 30,
+    borderRadius: Radius.full,
     alignItems: 'center',
     justifyContent: 'center',
   },

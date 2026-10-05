@@ -16,6 +16,7 @@ import {
   BottomTabInset,
   Fonts,
   MaxContentWidth,
+  Radius,
   Spacing,
   TopBarInset,
 } from '@/constants/theme';
@@ -56,7 +57,7 @@ function PersonRow({ user, isLast, onSelect, trailing }: RowProps) {
         style={styles.personIdentity}
         accessibilityRole="button"
         accessibilityLabel={`Call options for ${user.name}`}>
-        <Avatar name={user.name} isOnline={user.isOnline} colorIndex={user.colorIndex} />
+        <Avatar name={user.name} isOnline={user.isOnline} colorIndex={user.colorIndex} photoUrl={user.photoUrl} />
 
         <View style={styles.personInfo}>
           <ThemedText numberOfLines={1} style={styles.personName}>
@@ -103,7 +104,7 @@ function RequestRow({
         accessibilityRole="button"
         accessibilityLabel={`Call options for ${sender?.name ?? 'this person'}`}>
         {sender != null && (
-          <Avatar name={sender.name} isOnline={sender.isOnline} colorIndex={sender.colorIndex} />
+          <Avatar name={sender.name} isOnline={sender.isOnline} colorIndex={sender.colorIndex} photoUrl={sender.photoUrl} />
         )}
 
         <View style={styles.personInfo}>
@@ -235,7 +236,7 @@ export default function ContactsScreen() {
           />
 
           <View style={styles.profile}>
-            <Avatar name={user?.name ?? '?'} size={44} colorIndex={user?.colorIndex} />
+            <Avatar name={user?.name ?? '?'} size={44} colorIndex={user?.colorIndex} photoUrl={user?.photoUrl} />
             <View style={styles.personInfo}>
               <ThemedText numberOfLines={1} style={styles.personName}>
                 {user?.name}
@@ -459,7 +460,7 @@ const styles = StyleSheet.create({
   filterPill: {
     paddingVertical: Spacing.one,
     paddingHorizontal: Spacing.three,
-    borderRadius: Spacing.three,
+    borderRadius: Radius.full,
   },
   list: {
     alignSelf: 'stretch',
@@ -538,7 +539,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.two,
     paddingVertical: Spacing.two,
     paddingHorizontal: Spacing.four,
-    borderRadius: Spacing.three,
+    borderRadius: Radius.full,
   },
   pressed: {
     opacity: 0.6,
