@@ -2,21 +2,21 @@ import { Link } from 'expo-router';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 
-import { PrimaryButton } from '@/components/primary-button';
+import { AnimatedButton } from '@/components/animated-button';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Fonts, MaxContentWidth, Spacing } from '@/constants/theme';
+import { Fonts, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { useAuth } from '@/providers/auth-provider';
 
-/** Mirrors the rules in the service so the user gets instant feedback. */
-function validate(name: string, email: string, password: string) {
-  if (name.trim().length < 2) return 'Enter your name';
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return 'Enter a valid email address';
-  if (password.length < 8) return 'Password must be at least 8 characters';
-  return null;
-}
+const AnimatedThemedView = Animated.createAnimatedComponent(ThemedView);
 
 export default function SignUpScreen() {
   const { signUp } = useAuth();
@@ -26,17 +26,50 @@ export default function SignUpScreen() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const logoOpacity = useSharedValue(0);
+  const logoScale = useSharedValue(0.8);
+  const formOpacity = useSharedValue(0);
+  const formTranslateY = useSharedValue(30);
+
+  Animated.useAnimatedReaction(
+    () => true,
+    () => {
+      logoOpacity.value = withTiming(1, { duration: 600 });
+      logoScale.value = withSpring(1, { damping: 12, stiffness: 100 });
+      formOpacity.value = withTiming(1, { duration: 600 });
+      formTranslateY.value = withSpring(0, { damping: 15, stiffness: 80 });
+    },
+    []
+  );
+
+  const logoStyle = useAnimatedStyle(() => ({
+    opacity: logoOpacity.value,
+    transform: [{ scale: logoScale.value }],
+  }));
+
+  const formStyle = useAnimatedStyle(() => ({
+    opacity: formOpacity.value,
+    transform: [{ translateY: formTranslateY.value }],
+  }));
+
   async function handleSubmit() {
-    const problem = validate(name, email, password);
-    if (problem != null) {
-      setError(problem);
+    if (name.trim().length < 2) {
+      setError('Please enter your name');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setError('Please enter a valid email');
+      return;
+    }
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters');
       return;
     }
 
     setLoading(true);
     setError(null);
     try {
-      await signUp({ name, email, password });
+      await signUp({ name: name.trim(), email: email.trim(), password });
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Something went wrong');
       setLoading(false);
@@ -53,22 +86,27 @@ export default function SignUpScreen() {
             contentContainerStyle={styles.content}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled">
-            <View style={styles.hero}>
-              <ThemedText style={styles.title}>Create your account</ThemedText>
-              <ThemedText themeColor="textSecondary" style={styles.tagline}>
-                Find teammates and start a call in seconds.
+            <AnimatedThemedView style={[styles.hero, logoStyle]}>
+              <View style={styles.logoContainer}>
+                <Animated.View style={[styles.logoCircle, logoStyle]}>
+                  <ThemedText style={styles.logoText}>M</ThemedText>
+                </Animated.View>
+              </View>
+              <ThemedText style={styles.wordmark}>
+                Create account
               </ThemedText>
-            </View>
+              <ThemedText themeColor="textSecondary" style={styles.tagline}>
+                Join MeetNow and start calling.
+              </ThemedText>
+            </AnimatedThemedView>
 
-            <View style={styles.form}>
+            <Animated.View style={[styles.form, formStyle]}>
               <TextField
                 label="Full name"
                 value={name}
                 onChangeText={setName}
-                placeholder="Ada Lovelace"
+                placeholder="John Doe"
                 autoCapitalize="words"
-                autoComplete="name"
-                textContentType="name"
                 returnKeyType="next"
               />
 
@@ -88,7 +126,7 @@ export default function SignUpScreen() {
                 label="Password"
                 value={password}
                 onChangeText={setPassword}
-                placeholder="At least 8 characters"
+                placeholder="••••••••"
                 secureTextEntry
                 autoCapitalize="none"
                 autoComplete="new-password"
@@ -98,21 +136,25 @@ export default function SignUpScreen() {
                 error={error ?? undefined}
               />
 
-              <PrimaryButton label="Create account" onPress={handleSubmit} loading={loading} />
-            </View>
+              <AnimatedButton label="Create account" onPress={handleSubmit} loading={loading} />
+            </Animated.View>
 
-            <View style={styles.footerRow}>
-              <ThemedText type="small" themeColor="textSecondary">
-                Already have an account?
-              </ThemedText>
-              <Link href="/(auth)/sign-in" asChild>
-                <Pressable
-                  style={({ pressed }) => pressed && styles.pressed}
-                  accessibilityRole="link"
-                  accessibilityLabel="Go to sign in">
-                  <ThemedText type="smallBold">Sign in</ThemedText>
-                </Pressable>
-              </Link>
+            <View style={styles.footer}>
+              <View style={styles.footerRow}>
+                <ThemedText type="small" themeColor="textSecondary">
+                  Already have an account?
+                </ThemedText>
+                <Link href="/(auth)/sign-in" asChild>
+                  <Pressable
+                    style={({ pressed }) => pressed && styles.pressed}
+                    accessibilityRole="link"
+                    accessibilityLabel="Sign in">
+                    <ThemedText type="smallBold" style={{ color: '#4F46E5' }}>
+                      Sign in
+                    </ThemedText>
+                  </Pressable>
+                </Link>
+              </View>
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
@@ -142,27 +184,54 @@ const styles = StyleSheet.create({
     gap: Spacing.five,
   },
   hero: {
-    gap: Spacing.two,
+    gap: Spacing.three,
+    alignItems: 'center',
+    marginBottom: Spacing.four,
   },
-  title: {
+  logoContainer: {
+    marginBottom: Spacing.two,
+  },
+  logoCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: Radius.full,
+    backgroundColor: '#4F46E5',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  logoText: {
+    fontFamily: Fonts.rounded,
+    fontSize: 36,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  wordmark: {
     fontFamily: Fonts.rounded,
     fontSize: 32,
     lineHeight: 40,
-    fontWeight: '700',
-    letterSpacing: -0.8,
+    fontWeight: '800',
+    letterSpacing: -0.5,
   },
   tagline: {
     fontFamily: Fonts.sans,
     fontSize: 16,
-    lineHeight: 22,
+    lineHeight: 24,
+    textAlign: 'center',
   },
   form: {
     gap: Spacing.three,
   },
+  footer: {
+    alignItems: 'center',
+  },
   footerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     gap: Spacing.one,
   },
   pressed: {

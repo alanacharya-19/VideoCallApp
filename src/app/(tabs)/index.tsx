@@ -4,6 +4,12 @@ import { useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 
 import { Avatar } from '@/components/avatar';
 import { IconButton } from '@/components/icon-button';
@@ -16,6 +22,8 @@ import {
   BottomTabInset,
   Fonts,
   MaxContentWidth,
+  Radius,
+  Shadows,
   Spacing,
   TopBarInset,
 } from '@/constants/theme';
@@ -126,7 +134,7 @@ function PersonRow({
           borderBottomColor: theme.separator,
         },
       ]}>
-      <Avatar name={person.name} isOnline={person.isOnline} colorIndex={person.colorIndex} />
+      <Avatar name={person.name} isOnline={person.isOnline} colorIndex={person.colorIndex} photoUrl={person.photoUrl} />
 
       <View style={styles.rowInfo}>
         <ThemedText numberOfLines={1} style={styles.rowTitle}>
@@ -182,7 +190,6 @@ export default function CallScreen() {
           person.email.toLowerCase().includes(trimmed)
       )
       .sort((a, b) => {
-        // Friends first, then alphabetical.
         if (isFriend(a.id) !== isFriend(b.id)) return isFriend(a.id) ? -1 : 1;
         return a.name.localeCompare(b.name);
       });
@@ -196,11 +203,6 @@ export default function CallScreen() {
   function handleCall(person: User) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     router.push(`/call/${person.id}`);
-  }
-
-  function handleVideoCall(person: User) {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    router.push(`/call/${person.id}?mode=video`);
   }
 
   function handleAddFriend(person: User) {
@@ -241,7 +243,7 @@ export default function CallScreen() {
           <SearchBar
             value={query}
             onChangeText={setQuery}
-            placeholder="Search people to call"
+            placeholder="Search people by name or email"
           />
 
           {isSearching ? (
@@ -286,6 +288,7 @@ export default function CallScreen() {
                         size={56}
                         isOnline
                         colorIndex={friend.colorIndex}
+                        photoUrl={friend.photoUrl}
                       />
                       <ThemedText numberOfLines={1} style={styles.contactName}>
                         {friend.name.split(' ')[0]}
@@ -470,7 +473,7 @@ const styles = StyleSheet.create({
   filterPill: {
     paddingVertical: Spacing.one,
     paddingHorizontal: Spacing.three,
-    borderRadius: Spacing.three,
+    borderRadius: Radius.full,
   },
   empty: {
     alignSelf: 'stretch',
@@ -492,7 +495,7 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
     paddingVertical: Spacing.two,
     paddingHorizontal: Spacing.four,
-    borderRadius: Spacing.three,
+    borderRadius: Radius.full,
   },
   pressed: {
     opacity: 0.6,

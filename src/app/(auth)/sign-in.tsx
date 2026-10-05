@@ -3,14 +3,23 @@ import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+  withSequence,
+} from 'react-native-reanimated';
 
-import { PrimaryButton, SecondaryButton } from '@/components/primary-button';
+import { AnimatedButton } from '@/components/animated-button';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Fonts, MaxContentWidth, Spacing } from '@/constants/theme';
+import { Fonts, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { useAuth } from '@/providers/auth-provider';
 import { backend } from '@/services';
+
+const AnimatedThemedView = Animated.createAnimatedComponent(ThemedView);
 
 export default function SignInScreen() {
   const { signIn } = useAuth();
@@ -19,6 +28,33 @@ export default function SignInScreen() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+
+  // Entrance animations
+  const logoOpacity = useSharedValue(0);
+  const logoScale = useSharedValue(0.8);
+  const formOpacity = useSharedValue(0);
+  const formTranslateY = useSharedValue(30);
+
+  Animated.useAnimatedReaction(
+    () => true,
+    () => {
+      logoOpacity.value = withTiming(1, { duration: 600 });
+      logoScale.value = withSpring(1, { damping: 12, stiffness: 100 });
+      formOpacity.value = withTiming(1, { duration: 600 });
+      formTranslateY.value = withSpring(0, { damping: 15, stiffness: 80 });
+    },
+    []
+  );
+
+  const logoStyle = useAnimatedStyle(() => ({
+    opacity: logoOpacity.value,
+    transform: [{ scale: logoScale.value }],
+  }));
+
+  const formStyle = useAnimatedStyle(() => ({
+    opacity: formOpacity.value,
+    transform: [{ translateY: formTranslateY.value }],
+  }));
 
   async function handleSubmit() {
     setLoading(true);
@@ -53,17 +89,22 @@ export default function SignInScreen() {
             contentContainerStyle={styles.content}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled">
-            <View style={styles.hero}>
+            <AnimatedThemedView style={[styles.hero, logoStyle]}>
+              <View style={styles.logoContainer}>
+                <Animated.View style={[styles.logoCircle, logoStyle]}>
+                  <ThemedText style={styles.logoText}>M</ThemedText>
+                </Animated.View>
+              </View>
               <ThemedText style={styles.wordmark}>
                 Meet
                 <ThemedText themeColor="textSecondary">Now</ThemedText>
               </ThemedText>
               <ThemedText themeColor="textSecondary" style={styles.tagline}>
-                Sign in to call the people you work with.
+                Connect with anyone, anywhere.
               </ThemedText>
-            </View>
+            </AnimatedThemedView>
 
-            <View style={styles.form}>
+            <Animated.View style={[styles.form, formStyle]}>
               <TextField
                 label="Email"
                 value={email}
@@ -90,8 +131,8 @@ export default function SignInScreen() {
                 error={error ?? undefined}
               />
 
-              <PrimaryButton label="Sign in" onPress={handleSubmit} loading={loading} />
-            </View>
+              <AnimatedButton label="Sign in" onPress={handleSubmit} loading={loading} />
+            </Animated.View>
 
             <View style={styles.footer}>
               <Link href="/(auth)/forgot-password" asChild>
@@ -114,10 +155,11 @@ export default function SignInScreen() {
               <View style={styles.dividerLine} />
             </View>
 
-            <SecondaryButton
+            <AnimatedButton
               label={googleLoading ? 'Connecting…' : 'Continue with Google'}
               onPress={handleGoogleSignIn}
               loading={googleLoading}
+              variant="secondary"
             />
 
             <View style={styles.footerRow}>
@@ -129,7 +171,9 @@ export default function SignInScreen() {
                   style={({ pressed }) => pressed && styles.pressed}
                   accessibilityRole="link"
                   accessibilityLabel="Create an account">
-                  <ThemedText type="smallBold">Create an account</ThemedText>
+                  <ThemedText type="smallBold" style={{ color: '#4F46E5' }}>
+                    Create an account
+                  </ThemedText>
                 </Pressable>
               </Link>
             </View>
@@ -161,19 +205,44 @@ const styles = StyleSheet.create({
     gap: Spacing.five,
   },
   hero: {
-    gap: Spacing.two,
+    gap: Spacing.three,
+    alignItems: 'center',
+    marginBottom: Spacing.four,
+  },
+  logoContainer: {
+    marginBottom: Spacing.two,
+  },
+  logoCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: Radius.full,
+    backgroundColor: '#4F46E5',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  logoText: {
+    fontFamily: Fonts.rounded,
+    fontSize: 36,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
   wordmark: {
     fontFamily: Fonts.rounded,
-    fontSize: 40,
-    lineHeight: 48,
+    fontSize: 36,
+    lineHeight: 44,
     fontWeight: '800',
     letterSpacing: -1,
   },
   tagline: {
     fontFamily: Fonts.sans,
     fontSize: 16,
-    lineHeight: 22,
+    lineHeight: 24,
+    textAlign: 'center',
   },
   form: {
     gap: Spacing.three,
