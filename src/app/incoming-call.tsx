@@ -85,13 +85,13 @@ export default function IncomingCallScreen() {
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
-        <AnimatedThemedView style={[styles.content, contentStyle]}>
+        <AnimatedThemedView style={[styles.content, contentStyle as any]}>
           <ThemedText type="smallBold" themeColor="textSecondary" style={styles.label}>
             {isVideo ? 'Incoming video call' : 'Incoming call'}
           </ThemedText>
 
           <Animated.View style={{ transform: [{ scale: pulse }] }}>
-            <AnimatedThemedView style={[styles.avatarContainer, avatarStyle]}>
+            <AnimatedThemedView style={[styles.avatarContainer, avatarStyle as any]}>
               <Avatar name={name} size={120} colorIndex={colorIndex} photoUrl={peer?.photoUrl} />
             </AnimatedThemedView>
           </Animated.View>

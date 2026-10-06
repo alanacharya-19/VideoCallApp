@@ -374,7 +374,7 @@ export default function ForgotPasswordScreen() {
                   placeholder="••••••••"
                   secureTextEntry
                   autoCapitalize="none"
-                  autoComplete="newPassword"
+                  autoComplete={"new-password" as any}
                   textContentType={"new-password" as any}
                   returnKeyType="go"
                   onSubmitEditing={handleResetPassword}
