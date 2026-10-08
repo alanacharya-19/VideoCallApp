@@ -2,12 +2,16 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import type {
   Backend,
+  Call,
   CallRecord,
+  CallStatus,
+  CallType,
   Credentials,
   FriendRequest,
   Session,
   SignUpInput,
   User,
+  UserSettings,
 } from '@/services/types';
 
 /**
@@ -145,8 +149,13 @@ export const localBackend: Backend = {
       name: name.trim(),
       email: email.trim().toLowerCase(),
       password,
+      username: name.trim().toLowerCase().replace(/\s+/g, ''),
+      bio: '',
       isOnline: true,
+      lastSeen: null,
       colorIndex: users.length % AVATAR_COLORS,
+      photoUrl: null,
+      createdAt: new Date().toISOString(),
     };
     await writeUsers([...users, user]);
 
@@ -280,6 +289,135 @@ export const localBackend: Backend = {
 
   async clearCallHistory() {
     await writeCalls([]);
+  },
+
+  async updatePassword(currentPassword: string, newPassword: string) {
+    const id = await currentUserId();
+    const users = await readUsers();
+    const user = users.find((u) => u.id === id);
+    if (user == null) throw new Error('Not signed in');
+    if (user.password !== currentPassword) throw new Error('Current password is incorrect');
+    requirePassword(newPassword);
+    await writeUsers(users.map((u) => (u.id === id ? { ...u, password: newPassword } : u)));
+  },
+
+  async blockUser(userId: string) {
+    const me = await currentUserId();
+    const requests = await readRequests();
+    // Store blocked users as friend requests with a special status
+    const existing = requests.find(
+      (r) => r.fromUserId === me && r.toUserId === userId && r.status === 'accepted'
+    );
+    if (existing) {
+      await writeRequests(
+        requests.map((r) => (r.id === existing.id ? { ...r, status: 'declined' as const } : r))
+      );
+    }
+  },
+
+  async unblockUser(userId: string) {
+    const me = await currentUserId();
+    const requests = await readRequests();
+    await writeRequests(
+      requests.filter(
+        (r) => !(r.fromUserId === me && r.toUserId === userId && r.status === 'declined')
+      )
+    );
+  },
+
+  async listBlockedUsers() {
+    const me = await currentUserId();
+    const [users, requests] = await Promise.all([readUsers(), readRequests()]);
+    const blockedIds = new Set(
+      requests
+        .filter((r) => r.fromUserId === me && r.status === 'declined')
+        .map((r) => r.toUserId)
+    );
+    return users.filter((u) => blockedIds.has(u.id)).map(toPublic);
+  },
+
+  async createCall(receiverId: string, callType: CallType): Promise<Call> {
+    const callerId = await currentUserId();
+    const call: Call = {
+      id: makeId('call'),
+      callerId,
+      receiverId,
+      channelName: `call-${callerId}-${receiverId}-${Date.now()}`,
+      callType,
+      status: 'initiating',
+      startedAt: new Date().toISOString(),
+      answeredAt: null,
+      endedAt: null,
+      duration: 0,
+      createdAt: new Date().toISOString(),
+    };
+    return call;
+  },
+
+  async getCall(callId: string): Promise<Call | null> {
+    return null;
+  },
+
+  async updateCallStatus(callId: string, status: CallStatus): Promise<Call> {
+    const callerId = await currentUserId();
+    return {
+      id: callId,
+      callerId,
+      receiverId: '',
+      channelName: '',
+      callType: 'audio',
+      status,
+      startedAt: new Date().toISOString(),
+      answeredAt: null,
+      endedAt: null,
+      duration: 0,
+      createdAt: new Date().toISOString(),
+    };
+  },
+
+  async endCall(callId: string, duration: number): Promise<Call> {
+    const callerId = await currentUserId();
+    return {
+      id: callId,
+      callerId,
+      receiverId: '',
+      channelName: '',
+      callType: 'audio',
+      status: 'ended',
+      startedAt: new Date().toISOString(),
+      answeredAt: null,
+      endedAt: new Date().toISOString(),
+      duration,
+      createdAt: new Date().toISOString(),
+    };
+  },
+
+  async getSettings(): Promise<UserSettings> {
+    const id = await currentUserId();
+    return {
+      userId: id,
+      notificationsEnabled: true,
+      soundsEnabled: true,
+      vibrationEnabled: true,
+      audioQuality: 'standard',
+      videoQuality: 'standard',
+      speakerDefault: false,
+      theme: 'system',
+      updatedAt: new Date().toISOString(),
+    };
+  },
+
+  async updateSettings(patch: Partial<Omit<UserSettings, 'userId' | 'updatedAt'>>): Promise<UserSettings> {
+    const current = await this.getSettings();
+    return { ...current, ...patch, updatedAt: new Date().toISOString() };
+  },
+
+  async setOnlineStatus(isOnline: boolean) {
+    const id = await currentUserId();
+    const users = await readUsers();
+    await writeUsers(
+      users.map((u) => (u.id === id ? { ...u, isOnline, lastSeen: new Date().toISOString() } : u))
+    );
   },
 };
 

@@ -17,7 +17,7 @@ export type AvatarProps = {
   /** Picks a stable colour for this person. Omit for a neutral surface. */
   colorIndex?: number;
   /** Profile photo URL. When set, shows the photo instead of the initial. */
-  photoUrl?: string;
+  photoUrl?: string | null;
 };
 
 export function Avatar({ name, size = 44, isOnline = false, colorIndex, photoUrl }: AvatarProps) {

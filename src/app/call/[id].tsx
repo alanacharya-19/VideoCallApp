@@ -161,6 +161,7 @@ export default function CallScreen() {
         peerId: peer.id,
         peerName: peer.name,
         peerColorIndex: peer.colorIndex,
+        peerPhotoUrl: peer.photoUrl,
         direction: 'outgoing',
         outcome: seconds > 0 ? 'completed' : 'missed',
         mode: params.mode === 'video' ? 'video' : 'audio',
